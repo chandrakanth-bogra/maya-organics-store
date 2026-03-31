@@ -1,0 +1,495 @@
+@import "tailwindcss";
+
+/* =============================================
+   MAYA ORGANICS — DESIGN TOKENS
+   ============================================= */
+
+:root {
+  /* ── Brand palette (raw values) ── */
+  --green-dark:  #2D6A2D;
+  --green-mid:   #4A8A2A;
+  --green-light: #7DC42B;
+  --earth:       #5C4A1E;
+  --bark:        #8B6914;
+  --white:       #FFFFFF;
+  --accent-red:  #C0392B;
+
+  /* ── Semantic surface tokens (switch in dark mode) ── */
+  --bg-page:         #FAFCF8;  /* cream  */
+  --bg-surface:      #FFFFFF;  /* white sections */
+  --bg-subtle:       #F5F0E8;  /* sand sections  */
+  --bg-navbar:       #FAFCF8;
+  --text-primary:    #1A1A1A;
+  --text-secondary:  #6B6B6B;
+  --text-muted:      #6B6B6B;
+  --border-default:  #E8EDE5;
+  --input-bg:        #FFFFFF;
+  --input-text:      #1A1A1A;
+  --input-border:    #E8EDE5;
+  --input-placeholder: #E8EDE5;
+
+  /* ── Typography ── */
+  --font-display: 'DM Serif Display', serif;
+  --font-body:    'Poppins', sans-serif;
+
+  /* ── Spacing scale ── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  24px;
+  --space-6:  32px;
+  --space-7:  48px;
+  --space-8:  64px;
+  --space-9:  96px;
+  --space-10: 128px;
+
+  /* ── Layout ── */
+  --max-width:    1200px;
+  --navbar-height: 68px;
+  --radius-sm:    6px;
+  --radius-md:    12px;
+  --radius-lg:    20px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 20px rgba(45, 106, 45, 0.10);
+  --shadow-lg: 0 12px 48px rgba(45, 106, 45, 0.15);
+
+  /* ── Fixed surfaces (never change with theme) ── */
+  --footer-bg:   #1A1A1A;
+  --footer-text: rgba(255, 255, 255, 0.65);
+
+  /* ── Transitions ── */
+  --ease: all 0.25s ease;
+}
+
+/* =============================================
+   DARK MODE — only semantic tokens change
+   Toggle via data-theme="dark" on <html>
+   ============================================= */
+
+[data-theme="dark"] {
+  --bg-page:         #0F1A0F;
+  --bg-surface:      #162016;
+  --bg-subtle:       #1A2716;
+  --bg-navbar:       #0F1A0F;
+  --text-primary:    #C8DCC4;
+  --text-secondary:  #89A886;
+  --text-muted:      #89A886;
+  --border-default:  #273E25;
+  --input-bg:        #162016;
+  --input-text:      #C8DCC4;
+  --input-border:    #273E25;
+  --input-placeholder: #3A5038;
+}
+
+/* =============================================
+   TAILWIND v4 — REGISTER BRAND TOKENS
+   ============================================= */
+
+@theme inline {
+  --color-green-dark:  var(--green-dark);
+  --color-green-mid:   var(--green-mid);
+  --color-green-light: var(--green-light);
+  --color-earth:       var(--earth);
+  --color-bark:        var(--bark);
+  --color-accent-red:  var(--accent-red);
+  --color-bg-page:     var(--bg-page);
+  --color-bg-surface:  var(--bg-surface);
+  --color-bg-subtle:   var(--bg-subtle);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+}
+
+/* =============================================
+   RESET & BASE
+   ============================================= */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--text-primary);
+  background-color: var(--bg-page);
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: var(--ease);
+}
+
+ul, ol { list-style: none; }
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* =============================================
+   TYPOGRAPHY
+   ============================================= */
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--green-dark);
+  letter-spacing: -0.01em;
+}
+
+h1 { font-size: clamp(36px, 5vw, 64px); }
+h2 { font-size: clamp(28px, 3.5vw, 48px); }
+h3 { font-size: clamp(22px, 2.5vw, 32px); }
+h4 { font-size: clamp(18px, 2vw, 24px); }
+
+p {
+  font-weight: 300;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin-bottom: var(--space-4);
+}
+
+p:last-child { margin-bottom: 0; }
+
+.eyebrow {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--green-light);
+  margin-bottom: var(--space-3);
+}
+
+/* =============================================
+   LAYOUT — padding only, no color
+   ============================================= */
+
+.container {
+  width: 90%;
+  max-width: var(--max-width);
+  margin-inline: auto;
+}
+
+.section    { padding: var(--space-9) 0; }
+.section-sm { padding: var(--space-7) 0; }
+
+/* =============================================
+   TEXTURE OVERLAY
+   ============================================= */
+
+.textured { position: relative; overflow: hidden; }
+
+.textured::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-size: 320px;
+  background-repeat: repeat;
+  opacity: 0.045;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.textured > * { position: relative; z-index: 1; }
+
+/* =============================================
+   BUTTONS
+   ============================================= */
+
+.btn {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 14px 32px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: var(--ease);
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background-color: var(--green-dark);
+  color: var(--white);
+  border-color: var(--green-dark);
+}
+.btn-primary:hover {
+  background-color: var(--green-mid);
+  border-color: var(--green-mid);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--green-dark);
+  border-color: var(--green-dark);
+}
+.btn-outline:hover {
+  background-color: var(--green-dark);
+  color: var(--white);
+  transform: translateY(-1px);
+}
+
+.btn-outline-white {
+  background-color: transparent;
+  color: var(--white);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+.btn-outline-white:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--white);
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: var(--green-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.btn-text:hover {
+  color: var(--green-mid);
+  gap: var(--space-3);
+}
+
+/* =============================================
+   FORMS
+   ============================================= */
+
+.form-group { margin-bottom: var(--space-5); }
+
+.form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green-dark);
+  margin-bottom: var(--space-2);
+}
+
+.form-control {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--input-text);
+  background-color: var(--input-bg);
+  transition: border-color 0.2s;
+  outline: none;
+}
+.form-control:focus { border-color: var(--green-mid); }
+.form-control::placeholder { color: var(--input-placeholder); }
+
+/* =============================================
+   WHATSAPP FLOAT
+   ============================================= */
+
+.whatsapp-float {
+  position: fixed;
+  bottom: var(--space-5);
+  right: var(--space-5);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #25D366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.4);
+  z-index: 900;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.whatsapp-float:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.5);
+}
+.whatsapp-float svg { width: 26px; height: 26px; fill: white; }
+
+/* =============================================
+   PRODUCT CARD
+   ============================================= */
+
+.product-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* =============================================
+   NAVBAR — responsive display
+   ============================================= */
+
+.desktop-nav   { display: flex; }
+.hamburger-btn { display: none; }
+
+/* =============================================
+   RESPONSIVE LAYOUT GRIDS
+   ============================================= */
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-9);
+  align-items: center;
+}
+
+.home-products-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-5);
+}
+
+.pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+
+.product-detail-grid {
+  display: grid;
+  grid-template-columns: 400px 1fr 280px;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.pdp-sticky-col {
+  position: sticky;
+  top: calc(var(--navbar-height) + var(--space-5));
+}
+
+.cart-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.account-layout {
+  display: flex;
+  gap: var(--space-8);
+  align-items: flex-start;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  gap: var(--space-7);
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+}
+
+.filter-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-7);
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: var(--space-4);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* =============================================
+   RESPONSIVE — Tablet (≤ 1024px)
+   ============================================= */
+
+@media (max-width: 1100px) {
+  .product-detail-grid { grid-template-columns: 320px 1fr 260px; gap: var(--space-6); }
+}
+
+@media (max-width: 1024px) {
+  .home-products-grid { grid-template-columns: repeat(2, 1fr); }
+  .products-grid      { grid-template-columns: repeat(2, 1fr); }
+  .footer-grid        { grid-template-columns: 1fr 1fr; }
+}
+
+/* =============================================
+   RESPONSIVE — Mobile (≤ 768px)
+   ============================================= */
+
+@media (max-width: 768px) {
+  /* Navbar */
+  .desktop-nav   { display: none; }
+  .hamburger-btn { display: flex; }
+
+  /* Hero */
+  .hero-image { height: 280px !important; }
+  .hero-image-wrap { display: none; } /* hide hero image on small phones, show on tablet+ */
+
+  /* Grids */
+  .hero-grid          { grid-template-columns: 1fr; gap: var(--space-7); }
+  .home-products-grid { grid-template-columns: repeat(2, 1fr); }
+  .pillars-grid        { grid-template-columns: 1fr; }
+  .products-grid       { grid-template-columns: 1fr; }
+  .footer-grid         { grid-template-columns: 1fr; }
+  .product-detail-grid { grid-template-columns: 1fr; gap: var(--space-6); }
+  .pdp-sticky-col      { position: static; }
+  .cart-layout         { grid-template-columns: 1fr; gap: var(--space-6); }
+  .account-layout      { flex-direction: column; gap: var(--space-5); }
+  .account-layout > div:first-child { width: 100% !important; }
+  .account-sidebar-label { display: none; }
+  .account-sidebar nav   { display: flex; flex-direction: row; overflow-x: auto; padding: 0; border-bottom: 1px solid var(--border-default); }
+  .account-sidebar nav button { width: auto !important; white-space: nowrap; flex-shrink: 0; border-left: none !important; padding: var(--space-3) var(--space-4); }
+  .account-sidebar { border-radius: var(--radius-md) var(--radius-md) 0 0 !important; border-bottom: none !important; }
+  .account-sidebar-signout { display: none; }
+
+  /* Spacing */
+  .section    { padding: var(--space-7) 0; }
+  .section-sm { padding: var(--space-6) 0; }
+  .container  { width: 92%; }
+
+  /* Filter tabs — scrollable row on mobile */
+  .filter-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: var(--space-3);
+  }
+  .filter-tabs::-webkit-scrollbar { display: none; }
+}
