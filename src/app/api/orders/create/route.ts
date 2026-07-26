@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
-import { createAdminClient } from "@/lib/supabase-admin";
+import { eq, and, lte, desc, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { cartItems, coupons, volumeDiscounts, orders, orderItems } from "@/lib/db/schema";
+import { requireUser } from "@/lib/api-auth";
+import type { ShippingAddress } from "@/lib/db/schema";
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const db = getDb();
+  const auth = await requireUser();
+  if ("error" in auth) return auth.error;
+  const user = auth.user;
 
   const { address, coupon_code } = await req.json();
 
@@ -13,99 +17,105 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Shipping address is required." }, { status: 400 });
   }
 
-  const admin = createAdminClient();
+  const shippingAddress: ShippingAddress = {
+    label: address.label ?? "Home",
+    line1: address.line1,
+    line2: address.line2 ?? "",
+    city: address.city,
+    state: address.state,
+    pincode: address.pincode,
+  };
 
   // 1. Fetch cart items with variant prices
-  const { data: cartItems } = await admin
-    .from("cart_items")
-    .select("id, variant_id, quantity, variant:product_variants(price)")
-    .eq("user_id", user.id);
+  const cart = await db.query.cartItems.findMany({
+    where: eq(cartItems.userId, user.id),
+    with: { variant: { columns: { price: true } } },
+  });
 
-  if (!cartItems?.length) {
+  if (!cart.length) {
     return NextResponse.json({ error: "Cart is empty." }, { status: 400 });
   }
 
   // 2. Calculate subtotal
-  const subtotal = cartItems.reduce((sum, item) => {
-    const price = (item.variant as any)?.price ?? 0;
-    return sum + price * item.quantity;
-  }, 0);
+  const subtotal = cart.reduce((sum, item) => sum + item.variant.price * item.quantity, 0);
 
   // 3. Coupon or volume discount (whichever applies — don't stack)
   let discount = 0;
-  let applied_coupon: string | null = null;
+  let appliedCoupon: string | null = null;
+  let matchedCouponId: string | null = null;
 
   if (coupon_code) {
-    const { data: coupon } = await admin
-      .from("coupons")
-      .select("*")
-      .eq("code", coupon_code.trim().toUpperCase())
-      .eq("active", true)
-      .single();
+    const code = String(coupon_code).trim().toUpperCase();
+    const coupon = await db.query.coupons.findFirst({
+      where: and(eq(coupons.code, code), eq(coupons.active, true)),
+    });
 
     if (!coupon) {
       return NextResponse.json({ error: "Invalid or inactive coupon." }, { status: 400 });
     }
     const now = new Date().toISOString();
-    if (coupon.expires_at && coupon.expires_at < now) {
+    if (coupon.expiresAt && coupon.expiresAt < now) {
       return NextResponse.json({ error: "Coupon has expired." }, { status: 400 });
     }
-    if (coupon.min_order_amount && subtotal < coupon.min_order_amount) {
-      return NextResponse.json({ error: `Minimum order ₹${(coupon.min_order_amount / 100).toLocaleString("en-IN")} required.` }, { status: 400 });
+    if (coupon.minOrderAmount && subtotal < coupon.minOrderAmount) {
+      return NextResponse.json(
+        { error: `Minimum order ₹${(coupon.minOrderAmount / 100).toLocaleString("en-IN")} required.` },
+        { status: 400 }
+      );
     }
-    if (coupon.usage_limit && (coupon.times_used ?? 0) >= coupon.usage_limit) {
+    if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
       return NextResponse.json({ error: "Coupon usage limit reached." }, { status: 400 });
     }
-    discount = coupon.discount_type === "percent"
-      ? Math.round(subtotal * coupon.value / 100)
+    discount = coupon.discountType === "percent"
+      ? Math.round((subtotal * coupon.value) / 100)
       : coupon.value;
-    applied_coupon = coupon.code;
-    await admin.from("coupons").update({ times_used: (coupon.times_used ?? 0) + 1 }).eq("id", coupon.id);
+    appliedCoupon = coupon.code;
+    matchedCouponId = coupon.id;
   } else {
     // Auto-apply best volume discount
-    const { data: tiers } = await admin
-      .from("volume_discounts")
-      .select("*")
-      .lte("min_order_amount", subtotal)
-      .order("min_order_amount", { ascending: false })
-      .limit(1);
-    if (tiers?.length) {
-      discount = Math.round(subtotal * tiers[0].discount_percent / 100);
+    const tier = await db.query.volumeDiscounts.findFirst({
+      where: lte(volumeDiscounts.minOrderAmount, subtotal),
+      orderBy: desc(volumeDiscounts.minOrderAmount),
+    });
+    if (tier) {
+      discount = Math.round((subtotal * tier.discountPercent) / 100);
     }
   }
 
   const total = Math.max(0, subtotal - discount);
 
-  // 4. Create order
-  const { data: order, error: orderError } = await admin
-    .from("orders")
-    .insert({
-      user_id: user.id,
+  // 4-7: create order, order items, increment coupon usage, clear cart — atomically
+  const orderId = crypto.randomUUID();
+
+  await db.transaction(async (tx) => {
+    await tx.insert(orders).values({
+      id: orderId,
+      userId: user.id,
       status: "confirmed",
       subtotal,
       discount,
       total,
-      coupon_code: applied_coupon,
-      shipping_address: address,
-    })
-    .select("id")
-    .single();
+      couponCode: appliedCoupon,
+      shippingAddress,
+    });
 
-  if (orderError || !order) {
-    return NextResponse.json({ error: "Failed to create order." }, { status: 500 });
-  }
+    for (const item of cart) {
+      await tx.insert(orderItems).values({
+        orderId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        priceAtPurchase: item.variant.price,
+      });
+    }
 
-  // 5. Create order_items
-  const orderItems = cartItems.map((item) => ({
-    order_id: order.id,
-    variant_id: item.variant_id,
-    quantity: item.quantity,
-    price_at_purchase: (item.variant as any)?.price ?? 0,
-  }));
-  await admin.from("order_items").insert(orderItems);
+    if (matchedCouponId) {
+      await tx.update(coupons)
+        .set({ usedCount: sql`${coupons.usedCount} + 1` })
+        .where(eq(coupons.id, matchedCouponId));
+    }
 
-  // 6. Clear cart
-  await admin.from("cart_items").delete().eq("user_id", user.id);
+    await tx.delete(cartItems).where(eq(cartItems.userId, user.id));
+  });
 
-  return NextResponse.json({ order_id: order.id });
+  return NextResponse.json({ order_id: orderId });
 }

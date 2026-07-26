@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase-server";
+import { eq, and } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { getSession } from "@/lib/session";
+
+export const dynamic = "force-dynamic";
 
 const statusColor: Record<string, { bg: string; text: string }> = {
   pending:   { bg: "#fef3c7", text: "#92400e" },
@@ -20,27 +25,30 @@ export default async function AccountOrderDetailPage({
   const { id } = await params;
   const { success } = await searchParams;
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login");
+  const db = getDb();
+  const session = await getSession();
+  if (!session?.user) redirect("/auth/login");
 
-  const { data: order } = await supabase
-    .from("orders")
-    .select(`
-      id, status, subtotal, discount, total, coupon_code, shipping_address, created_at,
-      items:order_items(
-        id, quantity, price_at_purchase,
-        variant:product_variants(grain_size, pack_size, product:products(name, slug, image_thumb))
-      )
-    `)
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .single();
+  const order = await db.query.orders.findFirst({
+    where: and(eq(orders.id, id), eq(orders.userId, session.user.id)),
+    with: {
+      items: {
+        with: {
+          variant: {
+            columns: { grainSize: true, packSize: true },
+            with: {
+              product: { columns: { name: true, slug: true, imageThumb: true } },
+            },
+          },
+        },
+      },
+    },
+  });
 
   if (!order) notFound();
 
   const sc = statusColor[order.status] ?? { bg: "#f3f4f6", text: "#374151" };
-  const addr = order.shipping_address as any ?? {};
+  const addr = order.shippingAddress;
 
   return (
     <>
@@ -72,7 +80,7 @@ export default async function AccountOrderDetailPage({
             </span>
           </div>
           <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: "var(--space-2) 0 0" }}>
-            {new Date(order.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+            {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
       </section>
@@ -84,15 +92,15 @@ export default async function AccountOrderDetailPage({
           <div style={{ backgroundColor: "var(--bg-subtle)", border: "1px solid var(--border-default)", borderRadius: "var(--radius-md)", padding: "var(--space-6)" }}>
             <h3 style={{ marginBottom: "var(--space-5)", fontSize: "15px", color: "var(--text-primary)" }}>Items Ordered</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-              {(order.items as any[]).map((item: any) => {
+              {order.items.map((item) => {
                 const v = item.variant;
                 const p = v?.product;
-                const variantLabel = [v?.grain_size, v?.pack_size].filter(Boolean).join(" · ");
+                const variantLabel = [v?.grainSize, v?.packSize].filter(Boolean).join(" · ");
                 return (
                   <div key={item.id} style={{ display: "flex", gap: "var(--space-4)", alignItems: "center" }}>
                     <div style={{ width: "56px", height: "56px", borderRadius: "var(--radius-sm)", overflow: "hidden", flexShrink: 0, backgroundColor: "var(--bg-page)" }}>
-                      {p?.image_thumb && (
-                        <img src={`/images/${p.image_thumb}`} alt={p?.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      {p?.imageThumb && (
+                        <img src={`/images/${p.imageThumb}`} alt={p?.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       )}
                     </div>
                     <div style={{ flex: 1 }}>
@@ -100,7 +108,7 @@ export default async function AccountOrderDetailPage({
                       <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{variantLabel} × {item.quantity}</div>
                     </div>
                     <div style={{ fontSize: "14px", fontWeight: 500, color: "var(--text-primary)", flexShrink: 0 }}>
-                      ₹{((item.price_at_purchase * item.quantity) / 100).toLocaleString("en-IN")}
+                      ₹{((item.priceAtPurchase * item.quantity) / 100).toLocaleString("en-IN")}
                     </div>
                   </div>
                 );
@@ -119,7 +127,7 @@ export default async function AccountOrderDetailPage({
               {order.discount > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: "var(--text-secondary)" }}>
-                    Discount {order.coupon_code ? `(${order.coupon_code})` : ""}
+                    Discount {order.couponCode ? `(${order.couponCode})` : ""}
                   </span>
                   <span style={{ color: "var(--green-dark)", fontWeight: 600 }}>
                     −₹{(order.discount / 100).toLocaleString("en-IN")}

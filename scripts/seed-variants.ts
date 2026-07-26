@@ -1,27 +1,13 @@
 /**
- * Seed product_variants into Supabase.
+ * Seed product_variants into the local SQLite database.
  * Run: npx tsx scripts/seed-variants.ts
- * Requires SUPABASE_SERVICE_ROLE_KEY in .env.local
  *
  * Pack sizes are placeholder (225g pouch) — update from admin panel.
  * Prices are placeholder (₹99 = 9900 paise) — update from admin panel.
  */
-import { createClient } from "@supabase/supabase-js";
-import * as dotenv from "dotenv";
-import * as path from "path";
-
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-if (!supabaseUrl || !serviceRoleKey) {
-  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in env");
-  process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, serviceRoleKey);
+import { inArray } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { products, productVariants } from "@/lib/db/schema";
 
 // Variant definitions per product slug.
 // grain_size: null for non-granular products (cocopeat, vermicompost, neem-cake).
@@ -63,28 +49,21 @@ const variantsBySlug: Record<
 
 async function seed() {
   // Fetch all products to get their IDs
-  const { data: products, error: fetchError } = await supabase
-    .from("products")
-    .select("id, slug");
-
-  if (fetchError || !products) {
-    console.error("Failed to fetch products:", fetchError?.message);
-    process.exit(1);
-  }
+  const rows = await db.select({ id: products.id, slug: products.slug }).from(products);
 
   const slugToId: Record<string, string> = {};
-  for (const p of products) {
+  for (const p of rows) {
     slugToId[p.slug] = p.id;
   }
 
   // Build all variant rows
   const variants: {
-    product_id: string;
-    grain_size: string | null;
-    pack_size: string;
+    productId: string;
+    grainSize: string | null;
+    packSize: string;
     price: number;
-    in_stock: boolean;
-    sort_order: number;
+    inStock: boolean;
+    sortOrder: number;
   }[] = [];
 
   for (const [slug, defs] of Object.entries(variantsBySlug)) {
@@ -94,7 +73,14 @@ async function seed() {
       continue;
     }
     for (const def of defs) {
-      variants.push({ product_id: productId, ...def, in_stock: true });
+      variants.push({
+        productId,
+        grainSize: def.grain_size,
+        packSize: def.pack_size,
+        price: def.price,
+        sortOrder: def.sort_order,
+        inStock: true,
+      });
     }
   }
 
@@ -102,21 +88,12 @@ async function seed() {
 
   // Clear existing variants for all seeded products, then re-insert
   const productIds = Object.values(slugToId).filter(Boolean);
-  const { error: deleteError } = await supabase
-    .from("product_variants")
-    .delete()
-    .in("product_id", productIds);
-
-  if (deleteError) {
-    console.error("Failed to clear existing variants:", deleteError.message);
-    process.exit(1);
+  if (productIds.length) {
+    await db.delete(productVariants).where(inArray(productVariants.productId, productIds));
   }
 
-  const { error } = await supabase.from("product_variants").insert(variants);
-
-  if (error) {
-    console.error("Seed failed:", error.message);
-    process.exit(1);
+  if (variants.length) {
+    await db.insert(productVariants).values(variants);
   }
 
   console.log("Done! Variants seeded successfully.");

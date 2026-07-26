@@ -1,0 +1,16 @@
+name = "maya-organics-store"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+main = ".open-next/worker.js"
+
+[assets]
+directory = ".open-next/assets"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "maya-organics-db"
+database_id = "6ec67a80-ee27-46d5-8ad0-9fa0654f019e"
+
+[vars]
+BETTER_AUTH_URL = "https://mayaorganics.store"
+ADMIN_EMAIL = "mayaorganics5577@gmail.com"

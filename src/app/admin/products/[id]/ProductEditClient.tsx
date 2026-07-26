@@ -2,34 +2,33 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase-browser";
 
 interface Product {
   id: string;
   slug: string;
   name: string;
   category: string;
-  tagline: string;
-  meta_description: string;
+  tagline: string | null;
+  metaDescription: string | null;
   price: number;
-  price_unit: string;
-  image_main: string;
-  image_thumb: string;
-  usage_note: string;
-  texture_class: string;
-  has_size_guide: boolean;
-  in_stock: boolean;
+  priceUnit: string;
+  imageMain: string | null;
+  imageThumb: string | null;
+  usageNote: string | null;
+  textureClass: string;
+  hasSizeGuide: boolean;
+  inStock: boolean;
   highlights: string[];
   specs: { label: string; value: string }[];
 }
 
 interface Variant {
   id: string;
-  grain_size: string | null;
-  pack_size: string;
+  grainSize: string | null;
+  packSize: string;
   price: number;
-  in_stock: boolean;
-  sort_order: number;
+  inStock: boolean;
+  sortOrder: number;
 }
 
 const EMPTY_VARIANT = { grain_size: "", pack_size: "", price: 0, in_stock: true, sort_order: 0 };
@@ -58,22 +57,21 @@ const labelStyle: React.CSSProperties = {
 
 export default function ProductEditClient({ product, variants: initialVariants }: { product: Product; variants: Variant[] }) {
   const router = useRouter();
-  const supabase = createClient();
 
   /* Product form state */
   const [form, setForm] = useState({
     name: product.name,
     category: product.category,
     tagline: product.tagline ?? "",
-    meta_description: product.meta_description ?? "",
+    meta_description: product.metaDescription ?? "",
     price: product.price,
-    price_unit: product.price_unit,
-    image_main: product.image_main ?? "",
-    image_thumb: product.image_thumb ?? "",
-    usage_note: product.usage_note ?? "",
-    texture_class: product.texture_class ?? "",
-    has_size_guide: product.has_size_guide,
-    in_stock: product.in_stock,
+    price_unit: product.priceUnit,
+    image_main: product.imageMain ?? "",
+    image_thumb: product.imageThumb ?? "",
+    usage_note: product.usageNote ?? "",
+    texture_class: product.textureClass ?? "",
+    has_size_guide: product.hasSizeGuide,
+    in_stock: product.inStock,
   });
   const [highlights, setHighlights] = useState<string[]>(product.highlights ?? [""]);
   const [specs, setSpecs] = useState<{ label: string; value: string }[]>(
@@ -92,16 +90,17 @@ export default function ProductEditClient({ product, variants: initialVariants }
   const saveProduct = async () => {
     setSaving(true);
     setMsg("");
-    const { error } = await supabase
-      .from("products")
-      .update({
+    const res = await fetch(`/api/admin/products/${product.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         ...form,
         highlights: highlights.filter(Boolean),
         specs: specs.filter((s) => s.label),
-      })
-      .eq("id", product.id);
-    setMsg(error ? error.message : "Saved.");
-    if (!error) router.refresh();
+      }),
+    });
+    setMsg(res.ok ? "Saved." : "Failed to save.");
+    if (res.ok) router.refresh();
     setSaving(false);
   };
 
@@ -109,11 +108,11 @@ export default function ProductEditClient({ product, variants: initialVariants }
   const startEditVariant = (v: Variant) => {
     setEditingVariant(v.id);
     setVariantForm({
-      grain_size: v.grain_size ?? "",
-      pack_size: v.pack_size,
+      grain_size: v.grainSize ?? "",
+      pack_size: v.packSize,
       price: v.price / 100,
-      in_stock: v.in_stock,
-      sort_order: v.sort_order,
+      in_stock: v.inStock,
+      sort_order: v.sortOrder,
     });
     setVariantMsg("");
   };
@@ -130,35 +129,47 @@ export default function ProductEditClient({ product, variants: initialVariants }
       return;
     }
     const payload = {
-      product_id: product.id,
       grain_size: variantForm.grain_size || null,
       pack_size: variantForm.pack_size,
       price: Math.round(variantForm.price * 100),
       in_stock: variantForm.in_stock,
       sort_order: variantForm.sort_order,
     };
-    let error;
+    let res;
     if (editingVariant) {
-      ({ error } = await supabase.from("product_variants").update(payload).eq("id", editingVariant));
+      res = await fetch(`/api/admin/variants/${editingVariant}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
     } else {
-      ({ error } = await supabase.from("product_variants").insert(payload));
+      res = await fetch(`/api/admin/products/${product.id}/variants`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
     }
-    if (error) { setVariantMsg(error.message); return; }
+    if (!res.ok) { setVariantMsg("Failed to save variant."); return; }
     setVariantMsg("");
     cancelVariant();
     // Refresh variants
-    const { data } = await supabase.from("product_variants").select("*").eq("product_id", product.id).order("sort_order");
+    const listRes = await fetch(`/api/admin/products/${product.id}/variants`);
+    const { variants: data } = await listRes.json();
     setVariants(data ?? []);
   };
 
   const deleteVariant = async (id: string) => {
-    await supabase.from("product_variants").delete().eq("id", id);
+    await fetch(`/api/admin/variants/${id}`, { method: "DELETE" });
     setVariants((vs) => vs.filter((v) => v.id !== id));
   };
 
   const toggleVariantStock = async (id: string, current: boolean) => {
-    await supabase.from("product_variants").update({ in_stock: !current }).eq("id", id);
-    setVariants((vs) => vs.map((v) => v.id === id ? { ...v, in_stock: !current } : v));
+    await fetch(`/api/admin/variants/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ in_stock: !current }),
+    });
+    setVariants((vs) => vs.map((v) => v.id === id ? { ...v, inStock: !current } : v));
   };
 
   const card: React.CSSProperties = {
@@ -298,12 +309,12 @@ export default function ProductEditClient({ product, variants: initialVariants }
           <tbody>
             {variants.map((v) => (
               <tr key={v.id} style={{ borderTop: "1px solid #f3f4f6" }}>
-                <td style={{ padding: "10px 12px", color: "#374151" }}>{v.grain_size ?? "—"}</td>
-                <td style={{ padding: "10px 12px", color: "#374151" }}>{v.pack_size}</td>
+                <td style={{ padding: "10px 12px", color: "#374151" }}>{v.grainSize ?? "—"}</td>
+                <td style={{ padding: "10px 12px", color: "#374151" }}>{v.packSize}</td>
                 <td style={{ padding: "10px 12px", fontWeight: 500, color: "#1a1a1a" }}>₹{(v.price / 100).toLocaleString("en-IN")}</td>
                 <td style={{ padding: "10px 12px" }}>
-                  <button onClick={() => toggleVariantStock(v.id, v.in_stock)} style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "4px", border: "none", cursor: "pointer", backgroundColor: v.in_stock ? "#d1fae5" : "#fee2e2", color: v.in_stock ? "#065f46" : "#991b1b" }}>
-                    {v.in_stock ? "In Stock" : "Out of Stock"}
+                  <button onClick={() => toggleVariantStock(v.id, v.inStock)} style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "4px", border: "none", cursor: "pointer", backgroundColor: v.inStock ? "#d1fae5" : "#fee2e2", color: v.inStock ? "#065f46" : "#991b1b" }}>
+                    {v.inStock ? "In Stock" : "Out of Stock"}
                   </button>
                 </td>
                 <td style={{ padding: "10px 12px", display: "flex", gap: "12px" }}>

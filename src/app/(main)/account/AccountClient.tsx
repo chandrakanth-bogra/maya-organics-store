@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { createClient } from "@/lib/supabase-browser";
+import { changePassword as authChangePassword, updateUser as authUpdateUser } from "@/lib/auth-client";
 
 /* ── Types ── */
 interface Profile {
@@ -80,35 +80,21 @@ export default function AccountClient() {
   /* Load profile */
   useEffect(() => {
     if (!user) return;
-    const supabase = createClient();
-    // Seed from auth metadata if no DB row yet
-    const metaName: string = user.user_metadata?.full_name ?? user.user_metadata?.name ?? "";
-    supabase
-      .from("users")
-      .select("name, phone")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        setProfile({
-          name: data?.name ?? metaName,
-          phone: data?.phone ?? "",
-        });
-      });
+    setProfile({
+      name: user.name ?? "",
+      phone: (user as { phone?: string }).phone ?? "",
+    });
   }, [user]);
 
   /* Load addresses */
   const fetchAddresses = useCallback(async () => {
     if (!user) return;
     setAddrLoading(true);
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("addresses")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("is_default", { ascending: false })
-      .order("created_at");
-    if (error) console.error("Addresses fetch error:", error);
-    setAddresses((data as Address[]) ?? []);
+    const res = await fetch("/api/account/addresses");
+    if (res.ok) {
+      const { addresses: data } = await res.json();
+      setAddresses(data ?? []);
+    }
     setAddrLoading(false);
   }, [user]);
 
@@ -119,9 +105,9 @@ export default function AccountClient() {
   useEffect(() => {
     if (tab !== "orders" || !user) return;
     setOrdersLoading(true);
-    const supabase = createClient();
-    supabase.from("orders").select("id, status, total, created_at").eq("user_id", user.id).order("created_at", { ascending: false })
-      .then(({ data }) => { setOrders((data as Order[]) ?? []); setOrdersLoading(false); });
+    fetch("/api/account/orders")
+      .then((res) => res.json())
+      .then(({ orders: data }) => { setOrders(data ?? []); setOrdersLoading(false); });
   }, [tab, user]);
 
   if (authLoading || !user) return null;
@@ -130,11 +116,8 @@ export default function AccountClient() {
   const saveProfile = async () => {
     setProfileSaving(true);
     setProfileMsg("");
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("users")
-      .upsert({ id: user.id, name: profile.name, phone: profile.phone || null }, { onConflict: "id" });
-    setProfileMsg(error ? error.message : "Saved successfully.");
+    const { error } = await authUpdateUser({ name: profile.name, phone: profile.phone || undefined });
+    setProfileMsg(error ? error.message ?? "Something went wrong." : "Saved successfully.");
     setProfileSaving(false);
   };
 
@@ -159,34 +142,36 @@ export default function AccountClient() {
       return;
     }
     setAddrMsg("");
-    const supabase = createClient();
     if (editingAddr) {
-      const { error } = await supabase
-        .from("addresses")
-        .update({ ...addrForm })
-        .eq("id", editingAddr.id);
-      if (error) { setAddrMsg(error.message); return; }
+      const res = await fetch(`/api/account/addresses/${editingAddr.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addrForm),
+      });
+      if (!res.ok) { setAddrMsg("Failed to update address."); return; }
     } else {
-      const { error } = await supabase
-        .from("addresses")
-        .insert({ ...addrForm, user_id: user.id, is_default: addresses.length === 0 });
-      if (error) { setAddrMsg(error.message); return; }
+      const res = await fetch("/api/account/addresses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addrForm),
+      });
+      if (!res.ok) { setAddrMsg("Failed to save address."); return; }
     }
     setShowAddrForm(false);
     fetchAddresses();
   };
 
   const deleteAddress = async (id: string) => {
-    const supabase = createClient();
-    await supabase.from("addresses").delete().eq("id", id);
+    await fetch(`/api/account/addresses/${id}`, { method: "DELETE" });
     fetchAddresses();
   };
 
   const setDefault = async (id: string) => {
-    const supabase = createClient();
-    // Unset all, then set chosen
-    await supabase.from("addresses").update({ is_default: false }).eq("user_id", user.id);
-    await supabase.from("addresses").update({ is_default: true }).eq("id", id);
+    await fetch(`/api/account/addresses/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_default: true }),
+    });
     fetchAddresses();
   };
 
@@ -202,20 +187,12 @@ export default function AccountClient() {
     }
     setPwSaving(true);
     setPwMsg("");
-    const supabase = createClient();
-    // Verify current password by re-signing in
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email!,
-      password: pwForm.current,
+    const { error } = await authChangePassword({
+      currentPassword: pwForm.current,
+      newPassword: pwForm.next,
     });
-    if (signInError) {
-      setPwMsg("Current password is incorrect.");
-      setPwSaving(false);
-      return;
-    }
-    const { error } = await supabase.auth.updateUser({ password: pwForm.next });
     if (error) {
-      setPwMsg(error.message);
+      setPwMsg(error.message ?? "Current password is incorrect.");
     } else {
       setPwMsg("Password updated successfully.");
       setPwForm({ current: "", next: "", confirm: "" });

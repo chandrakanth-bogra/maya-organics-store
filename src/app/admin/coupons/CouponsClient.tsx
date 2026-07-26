@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase-browser";
 
 interface Coupon {
   id: string;
@@ -24,14 +23,14 @@ const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", bo
 const labelStyle: React.CSSProperties = { display: "block", fontSize: "11px", fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "4px" };
 
 export default function CouponsClient({ initialCoupons }: { initialCoupons: Coupon[] }) {
-  const supabase = createClient();
   const [coupons, setCoupons] = useState(initialCoupons);
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
 
   const refresh = async () => {
-    const { data } = await supabase.from("coupons").select("*").order("created_at", { ascending: false });
+    const res = await fetch("/api/admin/coupons");
+    const { coupons: data } = await res.json();
     setCoupons(data ?? []);
   };
 
@@ -46,21 +45,21 @@ export default function CouponsClient({ initialCoupons }: { initialCoupons: Coup
   const save = async () => {
     if (!form.code) { setMsg("Code is required."); return; }
     const payload = { ...form, code: form.code.toUpperCase(), min_order_amount: Math.round((form.min_order_amount as number) * 100), expires_at: form.expires_at || null };
-    const { error } = editingId
-      ? await supabase.from("coupons").update(payload).eq("id", editingId)
-      : await supabase.from("coupons").insert(payload);
-    if (error) { setMsg(error.message); return; }
+    const res = editingId === "new"
+      ? await fetch("/api/admin/coupons", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      : await fetch(`/api/admin/coupons/${editingId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) { setMsg("Failed to save coupon."); return; }
     cancel();
     refresh();
   };
 
   const deleteCoupon = async (id: string) => {
-    await supabase.from("coupons").delete().eq("id", id);
+    await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" });
     setCoupons((cs) => cs.filter((c) => c.id !== id));
   };
 
   const toggleActive = async (id: string, current: boolean) => {
-    await supabase.from("coupons").update({ active: !current }).eq("id", id);
+    await fetch(`/api/admin/coupons/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !current }) });
     setCoupons((cs) => cs.map((c) => c.id === id ? { ...c, active: !current } : c));
   };
 

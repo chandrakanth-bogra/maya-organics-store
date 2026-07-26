@@ -1,21 +1,26 @@
-import { createAdminClient } from "@/lib/supabase-admin";
+import { desc } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { user } from "@/lib/db/schema";
+import { requireAdminPage } from "@/lib/session";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
-  const supabase = createAdminClient();
-  const { data: users } = await supabase
-    .from("users")
-    .select("id, name, email, phone, created_at")
-    .order("created_at", { ascending: false });
+  await requireAdminPage();
+  const db = getDb();
+
+  const users = await db
+    .select({ id: user.id, name: user.name, email: user.email, phone: user.phone, createdAt: user.createdAt })
+    .from(user)
+    .orderBy(desc(user.createdAt));
 
   return (
     <div>
       <h1 style={{ fontSize: "24px", fontWeight: 700, color: "#1a1a1a", marginBottom: "4px" }}>Users</h1>
-      <p style={{ fontSize: "13px", color: "#6b7280", marginBottom: "24px" }}>{users?.length ?? 0} registered users</p>
+      <p style={{ fontSize: "13px", color: "#6b7280", marginBottom: "24px" }}>{users.length} registered users</p>
 
       <div style={{ backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden" }}>
-        {(!users || users.length === 0) ? (
+        {users.length === 0 ? (
           <p style={{ padding: "32px", fontSize: "13px", color: "#6b7280" }}>No users yet.</p>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
@@ -33,7 +38,7 @@ export default async function AdminUsersPage() {
                   <td style={{ padding: "12px 20px", color: "#374151" }}>{u.email}</td>
                   <td style={{ padding: "12px 20px", color: "#6b7280" }}>{u.phone ?? "—"}</td>
                   <td style={{ padding: "12px 20px", color: "#6b7280" }}>
-                    {new Date(u.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    {u.createdAt.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                   </td>
                 </tr>
               ))}

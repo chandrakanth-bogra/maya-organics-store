@@ -1,26 +1,25 @@
-import { createAdminClient } from "@/lib/supabase-admin";
 import { notFound } from "next/navigation";
+import { eq, asc } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { products, productVariants } from "@/lib/db/schema";
+import { requireAdminPage } from "@/lib/session";
 import ProductEditClient from "./ProductEditClient";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function AdminProductEditPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPage();
+  const db = getDb();
   const { id } = await params;
-  const supabase = createAdminClient();
 
-  const { data: product } = await supabase
-    .from("products")
-    .select("*")
-    .eq("id", id)
-    .single();
-
+  const product = await db.query.products.findFirst({ where: eq(products.id, id) });
   if (!product) notFound();
 
-  const { data: variants } = await supabase
-    .from("product_variants")
-    .select("*")
-    .eq("product_id", id)
-    .order("sort_order");
+  const variants = await db
+    .select()
+    .from(productVariants)
+    .where(eq(productVariants.productId, id))
+    .orderBy(asc(productVariants.sortOrder));
 
-  return <ProductEditClient product={product} variants={variants ?? []} />;
+  return <ProductEditClient product={product} variants={variants} />;
 }

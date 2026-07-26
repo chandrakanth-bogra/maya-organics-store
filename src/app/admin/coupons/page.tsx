@@ -1,14 +1,28 @@
-import { createAdminClient } from "@/lib/supabase-admin";
+import { desc } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { coupons } from "@/lib/db/schema";
+import { requireAdminPage } from "@/lib/session";
 import CouponsClient from "./CouponsClient";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function AdminCouponsPage() {
-  const supabase = createAdminClient();
-  const { data: coupons } = await supabase
-    .from("coupons")
-    .select("*")
-    .order("created_at", { ascending: false });
+  await requireAdminPage();
+  const db = getDb();
 
-  return <CouponsClient initialCoupons={coupons ?? []} />;
+  const rows = await db.select().from(coupons).orderBy(desc(coupons.createdAt));
+
+  const initialCoupons = rows.map((c) => ({
+    id: c.id,
+    code: c.code,
+    discount_type: c.discountType,
+    value: c.value,
+    min_order_amount: c.minOrderAmount,
+    usage_limit: c.usageLimit,
+    used_count: c.usedCount,
+    expires_at: c.expiresAt,
+    active: c.active,
+  }));
+
+  return <CouponsClient initialCoupons={initialCoupons} />;
 }

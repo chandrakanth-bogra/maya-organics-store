@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { createClient } from "@/lib/supabase-browser";
 import { useAuth } from "@/context/AuthContext";
 
 export interface CartItem {
@@ -52,23 +51,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setLoading(true);
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("cart_items")
-      .select(`
-        id,
-        variant_id,
-        quantity,
-        variant:product_variants(
-          grain_size,
-          pack_size,
-          price,
-          in_stock,
-          product:products(name, slug, image_thumb)
-        )
-      `)
-      .order("created_at");
-    setCartItems((data as unknown as CartItem[]) ?? []);
+    const res = await fetch("/api/cart");
+    if (res.ok) {
+      const { items } = await res.json();
+      setCartItems(items ?? []);
+    }
     setLoading(false);
   }, [user]);
 
@@ -78,38 +65,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = async (variantId: string, qty = 1) => {
     if (!user) return;
-    const supabase = createClient();
-    const existing = cartItems.find((i) => i.variant_id === variantId);
-    if (existing) {
-      const { error } = await supabase
-        .from("cart_items")
-        .update({ quantity: existing.quantity + qty })
-        .eq("id", existing.id);
-      if (error) { console.error("Cart update error:", error); return; }
-    } else {
-      const { error } = await supabase
-        .from("cart_items")
-        .insert({ user_id: user.id, variant_id: variantId, quantity: qty });
-      if (error) { console.error("Cart insert error:", error); return; }
-    }
+    const res = await fetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ variantId, qty }),
+    });
+    if (!res.ok) { console.error("Cart add error:", await res.text()); return; }
     await fetchCart();
   };
 
   const removeItem = async (cartItemId: string) => {
     if (!user) return;
-    const supabase = createClient();
-    await supabase.from("cart_items").delete().eq("id", cartItemId);
+    await fetch(`/api/cart/${cartItemId}`, { method: "DELETE" });
     await fetchCart();
   };
 
   const updateQty = async (cartItemId: string, qty: number) => {
     if (!user) return;
     if (qty <= 0) return removeItem(cartItemId);
-    const supabase = createClient();
-    await supabase
-      .from("cart_items")
-      .update({ quantity: qty })
-      .eq("id", cartItemId);
+    await fetch(`/api/cart/${cartItemId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quantity: qty }),
+    });
     await fetchCart();
   };
 

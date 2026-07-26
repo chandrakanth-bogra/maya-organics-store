@@ -1,32 +1,35 @@
-import { createAdminClient } from "@/lib/supabase-admin";
 import Link from "next/link";
+import { count, eq, desc } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { products, orders, user } from "@/lib/db/schema";
+import { requireAdminPage } from "@/lib/session";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 async function getStats() {
-  const supabase = createAdminClient();
-  const [products, orders, users, pendingOrders] = await Promise.all([
-    supabase.from("products").select("id", { count: "exact", head: true }),
-    supabase.from("orders").select("id", { count: "exact", head: true }),
-    supabase.from("users").select("id", { count: "exact", head: true }),
-    supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
+  const db = getDb();
+  const [[productsCount], [ordersCount], [usersCount], [pendingCount]] = await Promise.all([
+    db.select({ value: count() }).from(products),
+    db.select({ value: count() }).from(orders),
+    db.select({ value: count() }).from(user),
+    db.select({ value: count() }).from(orders).where(eq(orders.status, "pending")),
   ]);
   return {
-    products: products.count ?? 0,
-    orders: orders.count ?? 0,
-    users: users.count ?? 0,
-    pending: pendingOrders.count ?? 0,
+    products: productsCount.value,
+    orders: ordersCount.value,
+    users: usersCount.value,
+    pending: pendingCount.value,
   };
 }
 
 async function getRecentOrders() {
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("orders")
-    .select("id, status, total, created_at, user:users(name, email)")
-    .order("created_at", { ascending: false })
-    .limit(5);
-  return data ?? [];
+  const db = getDb();
+  return db.query.orders.findMany({
+    orderBy: desc(orders.createdAt),
+    limit: 5,
+    columns: { id: true, status: true, total: true, createdAt: true },
+    with: { user: { columns: { name: true, email: true } } },
+  });
 }
 
 const statusColor: Record<string, string> = {
@@ -38,6 +41,7 @@ const statusColor: Record<string, string> = {
 };
 
 export default async function AdminDashboard() {
+  await requireAdminPage();
   const [stats, recentOrders] = await Promise.all([getStats(), getRecentOrders()]);
 
   const statCards = [
@@ -91,14 +95,14 @@ export default async function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {recentOrders.map((o: any) => (
+              {recentOrders.map((o) => (
                 <tr key={o.id} style={{ borderTop: "1px solid #f3f4f6" }}>
                   <td style={{ padding: "12px 24px" }}>
                     <Link href={`/admin/orders/${o.id}`} style={{ color: "#2563eb", fontFamily: "monospace", fontSize: "12px" }}>
                       {o.id.slice(0, 8)}…
                     </Link>
                   </td>
-                  <td style={{ padding: "12px 24px", color: "#374151" }}>{(o.user as any)?.name || (o.user as any)?.email || "—"}</td>
+                  <td style={{ padding: "12px 24px", color: "#374151" }}>{o.user?.name || o.user?.email || "—"}</td>
                   <td style={{ padding: "12px 24px", color: "#374151", fontWeight: 500 }}>₹{(o.total / 100).toLocaleString("en-IN")}</td>
                   <td style={{ padding: "12px 24px" }}>
                     <span style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: statusColor[o.status] ?? "#6b7280" }}>
@@ -106,7 +110,7 @@ export default async function AdminDashboard() {
                     </span>
                   </td>
                   <td style={{ padding: "12px 24px", color: "#6b7280" }}>
-                    {new Date(o.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    {new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                   </td>
                 </tr>
               ))}

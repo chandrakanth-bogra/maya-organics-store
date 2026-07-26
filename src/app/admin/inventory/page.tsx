@@ -1,21 +1,32 @@
-import { createAdminClient } from "@/lib/supabase-admin";
+import { asc } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { productVariants } from "@/lib/db/schema";
+import { requireAdminPage } from "@/lib/session";
 import InventoryClient from "./InventoryClient";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function AdminInventoryPage() {
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("product_variants")
-    .select("id, grain_size, pack_size, price, in_stock, sort_order, product:products(id, name, slug)")
-    .order("sort_order");
+  await requireAdminPage();
+  const db = getDb();
 
-  // Group by product
-  const grouped: Record<string, { product: { id: string; name: string; slug: string }; variants: any[] }> = {};
-  for (const v of data ?? []) {
-    const p = v.product as any;
+  const rows = await db.query.productVariants.findMany({
+    orderBy: asc(productVariants.sortOrder),
+    columns: { id: true, grainSize: true, packSize: true, price: true, inStock: true },
+    with: { product: { columns: { id: true, name: true, slug: true } } },
+  });
+
+  const grouped: Record<string, { product: { id: string; name: string; slug: string }; variants: { id: string; grain_size: string | null; pack_size: string; price: number; in_stock: boolean }[] }> = {};
+  for (const v of rows) {
+    const p = v.product;
     if (!grouped[p.id]) grouped[p.id] = { product: p, variants: [] };
-    grouped[p.id].variants.push(v);
+    grouped[p.id].variants.push({
+      id: v.id,
+      grain_size: v.grainSize,
+      pack_size: v.packSize,
+      price: v.price,
+      in_stock: v.inStock,
+    });
   }
 
   return <InventoryClient groups={Object.values(grouped)} />;

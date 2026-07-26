@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase-browser";
 
 interface VolumeDiscount { id: string; min_order_amount: number; discount_percent: number; label: string | null; }
 
@@ -9,14 +8,14 @@ const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", bo
 const labelStyle: React.CSSProperties = { display: "block", fontSize: "11px", fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "4px" };
 
 export default function DiscountsClient({ initialDiscounts }: { initialDiscounts: VolumeDiscount[] }) {
-  const supabase = createClient();
   const [discounts, setDiscounts] = useState(initialDiscounts);
   const [form, setForm] = useState({ min_order_amount: "", discount_percent: "", label: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
 
   const refresh = async () => {
-    const { data } = await supabase.from("volume_discounts").select("*").order("min_order_amount");
+    const res = await fetch("/api/admin/discounts");
+    const { discounts: data } = await res.json();
     setDiscounts(data ?? []);
   };
 
@@ -31,16 +30,16 @@ export default function DiscountsClient({ initialDiscounts }: { initialDiscounts
   const save = async () => {
     if (!form.min_order_amount || !form.discount_percent) { setMsg("Min order and discount percent are required."); return; }
     const payload = { min_order_amount: Math.round(parseFloat(form.min_order_amount) * 100), discount_percent: parseInt(form.discount_percent), label: form.label || null };
-    const { error } = editingId && editingId !== "new"
-      ? await supabase.from("volume_discounts").update(payload).eq("id", editingId)
-      : await supabase.from("volume_discounts").insert(payload);
-    if (error) { setMsg(error.message); return; }
+    const res = editingId && editingId !== "new"
+      ? await fetch(`/api/admin/discounts/${editingId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      : await fetch("/api/admin/discounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) { setMsg("Failed to save tier."); return; }
     cancel();
     refresh();
   };
 
   const del = async (id: string) => {
-    await supabase.from("volume_discounts").delete().eq("id", id);
+    await fetch(`/api/admin/discounts/${id}`, { method: "DELETE" });
     setDiscounts((ds) => ds.filter((d) => d.id !== id));
   };
 

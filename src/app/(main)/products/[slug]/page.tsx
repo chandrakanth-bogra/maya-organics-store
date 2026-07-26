@@ -1,29 +1,33 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { eq, asc } from "drizzle-orm";
 import { PRODUCTS, getProduct } from "@/data/products";
-import { supabase } from "@/lib/supabase";
+import { getDb } from "@/lib/db";
+import { products, productVariants } from "@/lib/db/schema";
 import ProductGallery from "./ProductGallery";
 import BuyBox, { type Variant } from "./BuyBox";
 
-export const revalidate = 3600;
-
-export function generateStaticParams() {
-  return PRODUCTS.map((p) => ({ slug: p.slug }));
-}
+export const dynamic = "force-dynamic";
 
 async function getVariants(slug: string): Promise<Variant[]> {
-  const { data: product } = await supabase
-    .from("products")
-    .select("id")
-    .eq("slug", slug)
-    .single();
+  const db = getDb();
+  const product = await db.query.products.findFirst({
+    where: eq(products.slug, slug),
+    columns: { id: true },
+  });
   if (!product) return [];
-  const { data } = await supabase
-    .from("product_variants")
-    .select("id, grain_size, pack_size, price, in_stock")
-    .eq("product_id", product.id)
-    .order("sort_order");
-  return (data ?? []) as Variant[];
+  const rows = await db
+    .select({
+      id: productVariants.id,
+      grain_size: productVariants.grainSize,
+      pack_size: productVariants.packSize,
+      price: productVariants.price,
+      in_stock: productVariants.inStock,
+    })
+    .from(productVariants)
+    .where(eq(productVariants.productId, product.id))
+    .orderBy(asc(productVariants.sortOrder));
+  return rows as Variant[];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {

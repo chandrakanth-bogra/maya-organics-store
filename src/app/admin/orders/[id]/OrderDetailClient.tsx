@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase-browser";
 
 const STATUSES = ["pending", "confirmed", "shipped", "delivered", "cancelled"] as const;
 type Status = typeof STATUSES[number];
@@ -17,19 +16,22 @@ const statusColor: Record<Status, { bg: string; text: string }> = {
 
 export default function OrderDetailClient({ order }: { order: any }) {
   const router = useRouter();
-  const supabase = createClient();
   const [status, setStatus] = useState<Status>(order.status);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
   const updateStatus = async () => {
     setSaving(true);
-    const { error } = await supabase.from("orders").update({ status }).eq("id", order.id);
-    setMsg(error ? error.message : "Status updated.");
+    const res = await fetch(`/api/admin/orders/${order.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    setMsg(res.ok ? "Status updated." : "Failed to update status.");
     setSaving(false);
   };
 
-  const addr = order.shipping_address ?? {};
+  const addr = order.shippingAddress ?? {};
   const sc = statusColor[status as Status] ?? { bg: "#f3f4f6", text: "#374151" };
 
   const card: React.CSSProperties = { backgroundColor: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "20px 24px", marginBottom: "20px" };
@@ -110,13 +112,13 @@ export default function OrderDetailClient({ order }: { order: any }) {
           <tbody>
             {(order.items ?? []).map((item: any) => {
               const v = item.variant;
-              const variantLabel = [v?.grain_size, v?.pack_size].filter(Boolean).join(" · ");
+              const variantLabel = [v?.grainSize, v?.packSize].filter(Boolean).join(" · ");
               return (
                 <tr key={item.id} style={{ borderBottom: "1px solid #f9fafb" }}>
                   <td style={{ padding: "10px 0", fontWeight: 500, color: "#1a1a1a" }}>{v?.product?.name ?? "—"}</td>
                   <td style={{ padding: "10px 0", color: "#6b7280" }}>{variantLabel}</td>
                   <td style={{ padding: "10px 0", color: "#374151" }}>{item.quantity}</td>
-                  <td style={{ padding: "10px 0", fontWeight: 500, color: "#1a1a1a" }}>₹{(item.price_at_purchase * item.quantity / 100).toLocaleString("en-IN")}</td>
+                  <td style={{ padding: "10px 0", fontWeight: 500, color: "#1a1a1a" }}>₹{(item.priceAtPurchase * item.quantity / 100).toLocaleString("en-IN")}</td>
                 </tr>
               );
             })}
@@ -133,7 +135,7 @@ export default function OrderDetailClient({ order }: { order: any }) {
           </div>
           {order.discount > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#6b7280" }}>Discount {order.coupon_code && `(${order.coupon_code})`}</span>
+              <span style={{ color: "#6b7280" }}>Discount {order.couponCode && `(${order.couponCode})`}</span>
               <span style={{ color: "#10b981" }}>−₹{(order.discount / 100).toLocaleString("en-IN")}</span>
             </div>
           )}

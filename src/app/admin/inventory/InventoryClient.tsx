@@ -1,19 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase-browser";
 
 interface Variant { id: string; grain_size: string | null; pack_size: string; price: number; in_stock: boolean; }
 interface Group { product: { id: string; name: string; slug: string }; variants: Variant[]; }
 
 export default function InventoryClient({ groups: initialGroups }: { groups: Group[] }) {
-  const supabase = createClient();
   const [groups, setGroups] = useState(initialGroups);
   const [editingPrice, setEditingPrice] = useState<string | null>(null);
   const [priceInput, setPriceInput] = useState("");
 
   const toggleStock = async (variantId: string, current: boolean) => {
-    await supabase.from("product_variants").update({ in_stock: !current }).eq("id", variantId);
+    await fetch(`/api/admin/variants/${variantId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ in_stock: !current }),
+    });
     setGroups((gs) => gs.map((g) => ({
       ...g,
       variants: g.variants.map((v) => v.id === variantId ? { ...v, in_stock: !current } : v),
@@ -28,7 +30,11 @@ export default function InventoryClient({ groups: initialGroups }: { groups: Gro
   const savePrice = async (variantId: string) => {
     const price = Math.round(parseFloat(priceInput) * 100);
     if (!price || price <= 0) { setEditingPrice(null); return; }
-    await supabase.from("product_variants").update({ price }).eq("id", variantId);
+    await fetch(`/api/admin/variants/${variantId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ price }),
+    });
     setGroups((gs) => gs.map((g) => ({
       ...g,
       variants: g.variants.map((v) => v.id === variantId ? { ...v, price } : v),

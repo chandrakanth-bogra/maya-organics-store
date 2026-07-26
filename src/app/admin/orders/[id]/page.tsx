@@ -1,25 +1,31 @@
-import { createAdminClient } from "@/lib/supabase-admin";
 import { notFound } from "next/navigation";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { requireAdminPage } from "@/lib/session";
 import OrderDetailClient from "./OrderDetailClient";
 
-export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function AdminOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPage();
+  const db = getDb();
   const { id } = await params;
-  const supabase = createAdminClient();
 
-  const { data: order } = await supabase
-    .from("orders")
-    .select(`
-      *,
-      user:users(name, email, phone),
-      items:order_items(
-        id, quantity, price_at_purchase,
-        variant:product_variants(grain_size, pack_size, product:products(name, slug))
-      )
-    `)
-    .eq("id", id)
-    .single();
+  const order = await db.query.orders.findFirst({
+    where: eq(orders.id, id),
+    with: {
+      user: { columns: { name: true, email: true, phone: true } },
+      items: {
+        with: {
+          variant: {
+            columns: { grainSize: true, packSize: true },
+            with: { product: { columns: { name: true, slug: true } } },
+          },
+        },
+      },
+    },
+  });
 
   if (!order) notFound();
   return <OrderDetailClient order={order} />;

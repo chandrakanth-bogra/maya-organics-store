@@ -1,8 +1,9 @@
 import { PRODUCTS } from "@/data/products";
-import { supabase } from "@/lib/supabase";
+import { getDb } from "@/lib/db";
+import { products } from "@/lib/db/schema";
 import ProductsClient from "./ProductsClient";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Products — Maya Organics",
@@ -22,26 +23,32 @@ export interface Product {
 }
 
 export default async function ProductsPage() {
-  // Fetch only prices + stock from Supabase (content comes from static file)
-  const { data } = await supabase
-    .from("products")
-    .select("slug, price, price_unit, in_stock");
+  const db = getDb();
+  // Fetch only prices + stock from DB (content comes from static file)
+  const rows = await db
+    .select({
+      slug: products.slug,
+      price: products.price,
+      priceUnit: products.priceUnit,
+      inStock: products.inStock,
+    })
+    .from(products);
 
-  const dbMap = new Map((data ?? []).map((r) => [r.slug, r]));
+  const dbMap = new Map(rows.map((r) => [r.slug, r]));
 
-  const products: Product[] = PRODUCTS.map((p) => {
-    const db = dbMap.get(p.slug);
+  const productList: Product[] = PRODUCTS.map((p) => {
+    const row = dbMap.get(p.slug);
     return {
       slug: p.slug,
       name: p.name,
       category: p.category,
       tagline: p.tagline,
       image_main: p.image_main,
-      price: db?.price ?? 9900,
-      price_unit: db?.price_unit ?? "225g",
-      in_stock: db?.in_stock ?? true,
+      price: row?.price ?? 9900,
+      price_unit: row?.priceUnit ?? "225g",
+      in_stock: row?.inStock ?? true,
     };
   });
 
-  return <ProductsClient products={products} />;
+  return <ProductsClient products={productList} />;
 }

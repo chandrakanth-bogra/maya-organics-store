@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase-browser";
+import { authClient } from "@/lib/auth-client";
 
 export default function LoginClient() {
   const router = useRouter();
@@ -16,9 +16,6 @@ export default function LoginClient() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [emailSent, setEmailSent] = useState(false);
-
-  const supabase = createClient();
 
   const switchMode = (m: "signin" | "signup") => {
     setMode(m);
@@ -29,13 +26,11 @@ export default function LoginClient() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await authClient.signIn.email({ email, password });
     if (error) {
       setLoading(false);
-      setError(error.message);
+      setError(error.message ?? "Failed to sign in.");
     } else {
-      // Ensure public.users row exists via server route (bypasses RLS)
-      await fetch("/api/auth/sync-profile", { method: "POST" });
       setLoading(false);
       router.push(next);
       router.refresh();
@@ -50,64 +45,20 @@ export default function LoginClient() {
     }
     setLoading(true);
     setError("");
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await authClient.signUp.email({
       email,
       password,
-      options: { data: { name: name.trim() } },
+      name: name.trim(),
     });
     if (error) {
       setLoading(false);
-      setError(error.message);
+      setError(error.message ?? "Failed to create account.");
       return;
     }
-    if (data.session) {
-      // Email confirmation disabled — session available immediately
-      await fetch("/api/auth/sync-profile", { method: "POST" });
-      setLoading(false);
-      router.push(next);
-      router.refresh();
-    } else {
-      // Email confirmation enabled — prompt user to check inbox
-      setLoading(false);
-      setEmailSent(true);
-    }
+    setLoading(false);
+    router.push(next);
+    router.refresh();
   };
-
-  if (emailSent) {
-    return (
-      <div
-        className="section"
-        style={{ minHeight: "calc(100vh - var(--navbar-height))", display: "flex", alignItems: "center" }}
-      >
-        <div className="container">
-          <div
-            style={{
-              maxWidth: "440px",
-              margin: "0 auto",
-              backgroundColor: "var(--bg-surface)",
-              border: "1px solid var(--border-default)",
-              borderRadius: "var(--radius-md)",
-              padding: "var(--space-7) var(--space-6)",
-              boxShadow: "var(--shadow-md)",
-              textAlign: "center",
-            }}
-          >
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--green-dark)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: "0 auto var(--space-4)" }}>
-              <rect x="2" y="4" width="20" height="16" rx="2" />
-              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-            </svg>
-            <h3 style={{ marginBottom: "var(--space-2)" }}>Confirm your email</h3>
-            <p style={{ fontSize: "14px", marginBottom: "var(--space-5)" }}>
-              We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
-            </p>
-            <button className="btn-text" style={{ justifyContent: "center", width: "100%", fontSize: "13px" }} onClick={() => { setEmailSent(false); setError(""); }}>
-              ← Use a different email
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div
