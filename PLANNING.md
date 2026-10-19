@@ -51,10 +51,10 @@ OTP rules: Turnstile before sending (stops SMS-pumping fraud), 6 digits, 5-minut
 - [ ] Archive old repo `MayaOrganics`, delete its Worker `mayaorganics`
 
 ### Phase 1 — Foundation
-- [x] Astro scaffold on branch `astro`, Cloudflare adapter, Tailwind v4 + brand tokens, shadcn/ui kit (Button, Input, Card, Sheet, Dialog, Toast, Table)
+- [x] Astro scaffold on branch `astro`, Cloudflare adapter, Tailwind v4 + brand tokens, shadcn/ui (Button now; Input, Sheet, Dialog, Toast, Table added with cart/admin)
 - [x] Layout: navbar, footer, dark mode (`data-theme`), WhatsApp button, self-hosted fonts
-- [x] D1 schema (reuse Drizzle): products, variants (grain + pack size, price in paise, GST rate, stock, Amazon SKU, catalogue ID), orders, order_items, coupons, volume_discounts
-- [x] Seed the real catalogue: 9 products incl. Pine Bark, real sizes and GST-inclusive retail prices
+- [x] D1 catalogue schema (Drizzle): products, variants (grain + pack size, price in paise, GST rate, stock, Amazon SKU, catalogue ID, Zoho item), price audit. Orders/coupons tables come in Phase 3
+- [x] Seed the real catalogue: 9 products incl. Pine Bark, bot price list (one size each until real sizes are known), GST-inclusive
 - [ ] Bot: bind store D1, move `price` / `out` / `in` commands and quotes to the shared catalogue
 
 ### Phase 2 — Storefront + SEO
