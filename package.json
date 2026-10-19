@@ -1,38 +1,15 @@
 {
-  "name": "maya-organics-app",
-  "version": "0.1.0",
+  "name": "maya-organics-store",
   "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "build:cf": "opennextjs-cloudflare build",
-    "deploy": "opennextjs-cloudflare deploy",
-    "preview": "opennextjs-cloudflare preview",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 execute maya-organics-db --local --file=",
-    "db:migrate:remote": "wrangler d1 execute maya-organics-db --remote --file=",
-    "db:studio": "drizzle-kit studio"
-  },
-  "dependencies": {
-    "@opennextjs/cloudflare": "^1.20.2",
-    "better-auth": "^1.6.18",
-    "drizzle-orm": "^0.45.2",
-    "next": "^16.2.11",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260724.1",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "dotenv": "^17.3.1",
-    "dotenv-cli": "^11.0.0",
-    "drizzle-kit": "^0.31.10",
-    "tailwindcss": "^4",
-    "tsx": "^4.21.0",
-    "typescript": "^5",
-    "wrangler": "^4.114.0"
+    "dev": "npm run dev -w @maya/store",
+    "build": "npm run build -w @maya/store",
+    "check": "npm run check -w @maya/store",
+    "test": "npm test --workspaces --if-present"
   }
 }

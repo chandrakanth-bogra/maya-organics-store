@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Maya Organics — Store
 
-## Getting Started
+Retail store for **mayaorganics.store**: Astro + React islands on Cloudflare Workers, D1 database.
+See [PLANNING.md](PLANNING.md) for decisions and phases.
 
-First, run the development server:
+## Layout
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+apps/store      Storefront (Astro). Worker `maya-organics-store`
+packages/db     Shared D1 schema (Drizzle), queries, migrations, seed
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Prices, sizes and stock: D1 `maya-organics-db` (shared with the WhatsApp bot). Money in paise, GST included.
+- Product copy (descriptions, highlights, specs, FAQs): `apps/store/src/content/products/<slug>.md`.
+- Product photos: `apps/store/src/assets/images` (resized to AVIF/WebP automatically).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Develop
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+npm install
+cd apps/store
+npx wrangler d1 migrations apply maya-organics-db --local
+npx wrangler d1 execute maya-organics-db --local --file=../../packages/db/seed/catalogue.sql
+npx astro dev
+```
 
-## Learn More
+Checks: `npm run check` (types), `npm test`.
 
-To learn more about Next.js, take a look at the following resources:
+## Database changes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Edit `packages/db/src/schema.ts`
+2. `npm run generate -w @maya/db` (writes SQL to `packages/db/migrations`)
+3. `cd apps/store && npx wrangler d1 migrations apply maya-organics-db --local`, then `--remote` when ready
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploy
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+cd apps/store
+npx astro build && npx wrangler deploy
+```

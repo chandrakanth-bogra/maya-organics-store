@@ -1,0 +1,75 @@
+---
+import { Picture } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { loadCatalogue } from '../lib/catalogue';
+import { websiteLd, itemListLd } from '../lib/seo';
+import { SITE, whatsappLink } from '../lib/site';
+import hero from '../assets/images/hero.jpg';
+
+const products = await loadCatalogue();
+
+const pillars = [
+  { title: 'Graded and clean', body: 'Sieved, dust-controlled media that drain and breathe the way they should.' },
+  { title: 'Real advice on WhatsApp', body: 'Tell us your plant and pot size — we will suggest a mix and the right quantities.' },
+  { title: 'Shipped across India', body: 'Packed in Hyderabad and delivered to your door. Bulk and GST invoices available.' },
+];
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=300');
+---
+<BaseLayout
+  title={SITE.name}
+  description={`${SITE.tagline}. ${SITE.description}`}
+  jsonLd={[websiteLd(), itemListLd(products)]}
+>
+  <section class="border-b bg-secondary">
+    <div class="container-page grid items-center gap-10 py-14 md:grid-cols-2 md:py-20">
+      <div>
+        <span class="eyebrow">Growing media · Soil amendments</span>
+        <h1>Better soil, healthier plants.</h1>
+        <p class="mt-5 max-w-lg text-lg text-muted-foreground">
+          Perlite, pumice, LECA, pine bark and more — the building blocks of a good potting mix, for home gardeners, growers and nurseries.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="/products" class="inline-flex h-11 items-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Shop all products</a>
+          <a href={whatsappLink('Hi! Can you suggest a soil mix for my plants?')} class="inline-flex h-11 items-center rounded-lg border border-primary px-6 text-sm font-semibold text-heading hover:bg-accent">Ask for a mix on WhatsApp</a>
+        </div>
+      </div>
+      <div class="hidden overflow-hidden rounded-2xl md:block">
+        <Picture src={hero} alt="Potting mix ingredients in jars" formats={['avif', 'webp']} widths={[480, 720, 960]} sizes="(min-width: 768px) 45vw, 0px" loading="eager" fetchpriority="high" class="aspect-[4/3] w-full object-cover" />
+      </div>
+    </div>
+  </section>
+
+  <section class="container-page py-14 md:py-20" aria-labelledby="shop-heading">
+    <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <span class="eyebrow">Shop</span>
+        <h2 id="shop-heading">Our products</h2>
+      </div>
+      <a href="/products" class="text-sm font-medium text-heading hover:underline">View all →</a>
+    </div>
+    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {products.map((p, i) => <ProductCard product={p} eager={i < 3} />)}
+    </div>
+  </section>
+
+  <section class="border-y bg-card">
+    <div class="container-page grid gap-8 py-14 md:grid-cols-3">
+      {pillars.map((p) => (
+        <div>
+          <h3>{p.title}</h3>
+          <p class="mt-2 text-muted-foreground">{p.body}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="container-page py-14 md:py-20">
+    <div class="rounded-2xl bg-primary px-6 py-10 text-primary-foreground md:px-12">
+      <h2 class="text-white">Buying in bulk?</h2>
+      <p class="mt-3 max-w-xl text-white/85">Tonnes, nursery quantities or custom grades — with GST invoices and pan-India freight.</p>
+      <a href={SITE.b2bUrl} class="mt-6 inline-flex h-11 items-center rounded-lg bg-white px-6 text-sm font-semibold text-brand hover:bg-white/90">Get a bulk quote →</a>
+    </div>
+  </section>
+</BaseLayout>

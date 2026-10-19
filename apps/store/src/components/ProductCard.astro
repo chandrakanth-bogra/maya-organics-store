@@ -1,0 +1,39 @@
+---
+import { Picture } from 'astro:assets';
+import { fromPrice, isAvailable } from '@maya/db';
+import { productImage, type CatalogueProduct } from '../lib/catalogue';
+import { inr } from '../lib/format';
+
+interface Props { product: CatalogueProduct; eager?: boolean }
+const { product: p, eager = false } = Astro.props;
+const price = fromPrice(p.variants);
+const available = isAvailable(p);
+const sizes = p.variants.length;
+---
+<article class="group relative flex flex-col overflow-hidden rounded-xl border bg-card transition-shadow hover:shadow-lg hover:shadow-primary/10">
+  <div class="relative aspect-square overflow-hidden bg-muted">
+    <Picture
+      src={productImage(p.image)}
+      alt={p.name}
+      formats={['avif', 'webp']}
+      widths={[320, 480, 640]}
+      sizes="(min-width: 1024px) 280px, (min-width: 640px) 45vw, 92vw"
+      loading={eager ? 'eager' : 'lazy'}
+      fetchpriority={eager ? 'high' : 'auto'}
+      class="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+    />
+    {!available && (
+      <span class="absolute left-3 top-3 rounded-full bg-background/90 px-2.5 py-1 text-xs font-medium text-destructive">Out of stock</span>
+    )}
+  </div>
+  <div class="flex flex-1 flex-col p-4">
+    <p class="eyebrow mb-1">{p.category}</p>
+    <h3 class="text-xl">
+      <a href={`/products/${p.slug}`} class="after:absolute after:inset-0">{p.name}</a>
+    </h3>
+    <p class="mt-1 line-clamp-2 text-sm text-muted-foreground">{p.summary}</p>
+    <p class="mt-auto pt-3 text-base font-semibold text-foreground">
+      {price !== null && (sizes > 1 ? <>From {inr(price)}</> : <>{inr(price)} <span class="text-sm font-normal text-muted-foreground">/ {p.variants[0].packSize}</span></>)}
+    </p>
+  </div>
+</article>

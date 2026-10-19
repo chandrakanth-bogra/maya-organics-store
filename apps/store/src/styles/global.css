@@ -1,0 +1,160 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Dark mode follows data-theme on <html> (set before paint by the inline script in BaseLayout). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* =============================================================
+   MAYA ORGANICS — brand tokens, mapped onto shadcn's token names
+   so every shadcn component picks up the brand automatically.
+   ============================================================= */
+
+:root {
+  --green-dark: #2d6a2d;
+  --green-mid: #4a8a2a;
+  --green-light: #7dc42b;
+  --earth: #5c4a1e;
+  --whatsapp: #25d366;
+
+  --background: #fafcf8; /* cream page */
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+  --primary: var(--green-dark);
+  --primary-foreground: #ffffff;
+  --secondary: #f5f0e8; /* sand */
+  --secondary-foreground: #2d2a22;
+  --muted: #f5f0e8;
+  --muted-foreground: #5f6359;
+  --accent: #eef5e6;
+  --accent-foreground: var(--green-dark);
+  --destructive: #c0392b;
+  --border: #e3e9df;
+  --input: #dfe6da;
+  --ring: var(--green-mid);
+  --heading: var(--green-dark);
+  --eyebrow: #3f7a24;
+  --footer: #141a14;
+  --footer-foreground: rgb(255 255 255 / 0.7);
+  --radius: 0.75rem;
+}
+
+[data-theme="dark"] {
+  --background: #0f1a0f;
+  --foreground: #d6e6d2;
+  --card: #162016;
+  --card-foreground: #d6e6d2;
+  --popover: #162016;
+  --popover-foreground: #d6e6d2;
+  --primary: #357a35;
+  --primary-foreground: #ffffff;
+  --secondary: #1a2716;
+  --secondary-foreground: #d6e6d2;
+  --muted: #1a2716;
+  --muted-foreground: #9ab897;
+  --accent: #1f2f1c;
+  --accent-foreground: #b9dca9;
+  --destructive: #e05a4a;
+  --border: #273e25;
+  --input: #2c452a;
+  --ring: #7dc42b;
+  --heading: #a8d39a;
+  --eyebrow: #8fcf4f;
+  --footer: #080f08;
+}
+
+@theme inline {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "DM Serif Display", ui-serif, Georgia, serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-heading: var(--heading);
+  --color-eyebrow: var(--eyebrow);
+  --color-footer: var(--footer);
+  --color-footer-foreground: var(--footer-foreground);
+  --color-brand: var(--green-dark);
+  --color-brand-light: var(--green-light);
+  --color-earth: var(--earth);
+  --color-whatsapp: var(--whatsapp);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans antialiased;
+    scroll-padding-top: 5rem;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1, h2, h3, h4 {
+    @apply font-heading text-heading font-normal tracking-tight text-balance;
+    line-height: 1.15;
+  }
+  h1 { font-size: clamp(2.25rem, 5vw, 3.75rem); }
+  h2 { font-size: clamp(1.75rem, 3.5vw, 2.75rem); }
+  h3 { font-size: clamp(1.35rem, 2.5vw, 1.75rem); }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@utility container-page {
+  width: 100%;
+  max-width: 75rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (width >= 48rem) {
+    padding-inline: 2rem;
+  }
+}
+
+@utility eyebrow {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--eyebrow);
+  margin-bottom: 0.75rem;
+}
+
+/* Long-form copy from Markdown (product descriptions, guides). */
+@utility prose-maya {
+  color: var(--muted-foreground);
+  line-height: 1.8;
+  & p { margin-bottom: 1rem; }
+  & h2, & h3 { margin: 2rem 0 0.75rem; }
+  & ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 1rem; }
+  & a { color: var(--heading); text-decoration: underline; text-underline-offset: 3px; }
+  & strong { color: var(--foreground); font-weight: 600; }
+}

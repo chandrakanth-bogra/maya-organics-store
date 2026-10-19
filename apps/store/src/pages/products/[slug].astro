@@ -1,0 +1,163 @@
+---
+import { Picture, getImage } from 'astro:assets';
+import { render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { loadProduct, productImage } from '../../lib/catalogue';
+import { productLd, breadcrumbLd, faqLd } from '../../lib/seo';
+import { inr } from '../../lib/format';
+import { SITE, whatsappLink } from '../../lib/site';
+
+const product = await loadProduct(Astro.params.slug ?? '');
+if (!product) return new Response(null, { status: 404, statusText: 'Not found' });
+
+const { copy, variants } = product;
+const { Content } = await render(copy);
+
+// Selected size: ?size=SKU (links, so it works without JavaScript and each size has a URL).
+const requested = Astro.url.searchParams.get('size');
+const selected = variants.find((v) => v.sku === requested) ?? variants.find((v) => v.inStock) ?? variants[0];
+const sizeLabel = (v: (typeof variants)[number]) => [v.grainSize, v.packSize].filter(Boolean).join(' · ');
+
+const gallery = copy.data.gallery.map(productImage);
+const ogImage = await getImage({ src: gallery[0], width: 1200, format: 'jpg' });
+const imageUrls = [new URL(ogImage.src, SITE.url).href];
+const path = `/products/${product.slug}`;
+const crumbs = [{ name: 'Home', path: '/' }, { name: 'Shop', path: '/products' }, { name: product.name, path }];
+
+const orderText = selected
+  ? `Hi! I'd like to order ${product.name} (${sizeLabel(selected)}) — ${inr(selected.price)}. SKU ${selected.sku}`
+  : `Hi! I'm interested in ${product.name}.`;
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=300');
+---
+<BaseLayout
+  title={copy.data.title}
+  description={copy.data.description}
+  image={imageUrls[0]}
+  type="product"
+  jsonLd={[
+    productLd(product, `${SITE.url}${path}`, imageUrls),
+    breadcrumbLd(crumbs),
+    faqLd(copy.data.faqs),
+  ]}
+>
+  <div class="container-page py-8 md:py-12">
+    <Breadcrumbs items={crumbs} />
+
+    <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14">
+      <!-- Gallery -->
+      <div class="space-y-3">
+        <div class="overflow-hidden rounded-2xl border bg-muted">
+          <Picture src={gallery[0]} alt={product.name} formats={['avif', 'webp']} widths={[480, 720, 960]} sizes="(min-width: 1024px) 560px, 92vw" loading="eager" fetchpriority="high" class="aspect-square w-full object-cover" />
+        </div>
+        {gallery.length > 1 && (
+          <div class="grid grid-cols-4 gap-3">
+            {gallery.slice(1).map((img, i) => (
+              <div class="overflow-hidden rounded-lg border bg-muted">
+                <Picture src={img} alt={`${product.name} — photo ${i + 2}`} formats={['avif', 'webp']} widths={[160, 320]} sizes="140px" class="aspect-square w-full object-cover" />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <!-- Buy box -->
+      <div>
+        <span class="eyebrow">{product.category}</span>
+        <h1>{product.name}</h1>
+
+        {selected && (
+          <p class="mt-4 text-3xl font-semibold text-foreground">
+            {inr(selected.price)}
+            {selected.mrp && selected.mrp > selected.price && <s class="ml-2 text-lg font-normal text-muted-foreground">{inr(selected.mrp)}</s>}
+            <span class="ml-1 text-base font-normal text-muted-foreground">/ {selected.packSize}</span>
+          </p>
+        )}
+        <p class="mt-1 text-sm text-muted-foreground">Inclusive of GST</p>
+
+        {variants.length > 1 && (
+          <fieldset class="mt-6">
+            <legend class="mb-2 text-sm font-medium">Size</legend>
+            <div class="flex flex-wrap gap-2">
+              {variants.map((v) => (
+                <a
+                  href={`?size=${encodeURIComponent(v.sku)}`}
+                  aria-current={v.sku === selected?.sku ? 'true' : undefined}
+                  rel="nofollow"
+                  class:list={[
+                    'rounded-lg border px-4 py-2 text-sm transition-colors hover:border-primary',
+                    'aria-[current=true]:border-primary aria-[current=true]:bg-accent aria-[current=true]:text-accent-foreground',
+                    !v.inStock && 'text-muted-foreground line-through',
+                  ]}
+                >
+                  {sizeLabel(v)} <span class="ml-1 font-semibold">{inr(v.price)}</span>
+                </a>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
+        <p class:list={['mt-6 text-sm font-medium', selected?.inStock ? 'text-heading' : 'text-destructive']}>
+          {selected?.inStock ? '● In stock — ships from Hyderabad' : '● Out of stock'}
+        </p>
+
+        <div class="mt-4 flex flex-col gap-3 sm:flex-row">
+          <a
+            href={whatsappLink(orderText)}
+            class="inline-flex h-12 items-center sm:flex-1 justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          >Order on WhatsApp</a>
+          <a href={whatsappLink(`Hi! I have a question about ${product.name}.`)} class="inline-flex h-12 items-center justify-center rounded-lg border px-6 text-sm font-semibold hover:bg-accent">Ask a question</a>
+        </div>
+
+        <div class="prose-maya mt-8">
+          <Content />
+        </div>
+
+        {copy.data.highlights.length > 0 && (
+          <ul class="mt-6 space-y-2">
+            {copy.data.highlights.map((h) => (
+              <li class="flex gap-3 text-sm"><span class="mt-1 text-heading" aria-hidden="true">✓</span><span>{h}</span></li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+
+    <div class="mt-14 grid gap-10 lg:grid-cols-2">
+      {copy.data.specs.length > 0 && (
+        <section aria-labelledby="specs">
+          <h2 id="specs" class="text-2xl">Specifications</h2>
+          <dl class="mt-4 divide-y rounded-xl border bg-card">
+            {copy.data.specs.map((s) => (
+              <div class="grid grid-cols-[9rem_1fr] gap-4 px-4 py-3 text-sm">
+                <dt class="font-medium">{s.label}</dt>
+                <dd class="text-muted-foreground">{s.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+      {copy.data.usage && (
+        <section aria-labelledby="usage">
+          <h2 id="usage" class="text-2xl">How to use</h2>
+          <p class="mt-4 leading-relaxed text-muted-foreground">{copy.data.usage}</p>
+        </section>
+      )}
+    </div>
+
+    {copy.data.faqs.length > 0 && (
+      <section class="mt-14" aria-labelledby="faq">
+        <h2 id="faq" class="text-2xl">Questions</h2>
+        <div class="mt-4 divide-y rounded-xl border bg-card">
+          {copy.data.faqs.map((f) => (
+            <details class="group px-4 py-3">
+              <summary class="cursor-pointer list-none font-medium">{f.q}</summary>
+              <p class="mt-2 text-sm text-muted-foreground">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+    )}
+  </div>
+</BaseLayout>
