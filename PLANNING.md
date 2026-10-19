@@ -47,14 +47,14 @@ OTP rules: Turnstile before sending (stops SMS-pumping fraud), 6 digits, 5-minut
 ## Phases
 
 ### Phase 0 — Lock down the old deployment
-- [ ] Take the Next.js Worker `maya-organics-store` off workers.dev (open admin sign-up hole) until the new store launches
+- [x] Take the Next.js Worker `maya-organics-store` off workers.dev (open admin sign-up hole) until the new store launches
 - [ ] Archive old repo `MayaOrganics`, delete its Worker `mayaorganics`
 
 ### Phase 1 — Foundation
-- [ ] Astro scaffold on branch `astro`, Cloudflare adapter, Tailwind v4 + brand tokens, shadcn/ui kit (Button, Input, Card, Sheet, Dialog, Toast, Table)
-- [ ] Layout: navbar, footer, dark mode (`data-theme`), WhatsApp button, self-hosted fonts
-- [ ] D1 schema (reuse Drizzle): products, variants (grain + pack size, price in paise, GST rate, stock, Amazon SKU, catalogue ID), orders, order_items, coupons, volume_discounts
-- [ ] Seed the real catalogue: 9 products incl. Pine Bark, real sizes and GST-inclusive retail prices
+- [x] Astro scaffold on branch `astro`, Cloudflare adapter, Tailwind v4 + brand tokens, shadcn/ui kit (Button, Input, Card, Sheet, Dialog, Toast, Table)
+- [x] Layout: navbar, footer, dark mode (`data-theme`), WhatsApp button, self-hosted fonts
+- [x] D1 schema (reuse Drizzle): products, variants (grain + pack size, price in paise, GST rate, stock, Amazon SKU, catalogue ID), orders, order_items, coupons, volume_discounts
+- [x] Seed the real catalogue: 9 products incl. Pine Bark, real sizes and GST-inclusive retail prices
 - [ ] Bot: bind store D1, move `price` / `out` / `in` commands and quotes to the shared catalogue
 
 ### Phase 2 — Storefront + SEO
