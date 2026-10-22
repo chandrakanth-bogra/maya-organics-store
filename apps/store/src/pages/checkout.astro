@@ -1,0 +1,16 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CheckoutForm from '../components/CheckoutForm';
+import { INDIAN_STATES, listAddresses } from '@maya/db';
+import { db } from '../lib/session';
+
+// The middleware sends visitors who are not logged in to /login first.
+const customer = Astro.locals.customer!;
+const addresses = await listAddresses(db(), customer.id);
+---
+<BaseLayout title="Checkout" description="Checkout" noindex>
+  <section class="container-page py-10 md:py-14">
+    <h1 class="mb-8 text-4xl">Checkout</h1>
+    <CheckoutForm client:load addresses={addresses} name={customer.name ?? ''} gstin={customer.gstin ?? ''} phone={customer.phone} states={INDIAN_STATES} />
+  </section>
+</BaseLayout>

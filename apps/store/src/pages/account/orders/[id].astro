@@ -1,0 +1,57 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../../components/Breadcrumbs.astro';
+import { formatPhone, getOrder } from '@maya/db';
+import { db } from '../../../lib/session';
+import { inr } from '../../../lib/format';
+import { STATUS_LABEL } from '../../../lib/orders';
+import { whatsappLink } from '../../../lib/site';
+
+const customer = Astro.locals.customer!;
+const order = await getOrder(db(), customer.id, Astro.params.id ?? '');
+if (!order) return Astro.rewrite('/404');
+
+const placed = Astro.url.searchParams.get('placed') === '1';
+const a = order.address;
+const when = new Date(order.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
+---
+<BaseLayout title={`Order ${order.id}`} description="Your order" noindex>
+  <section class="container-page py-10 md:py-14">
+    <Breadcrumbs items={[{ name: 'Account', path: '/account' }, { name: `Order ${order.id}`, path: `/account/orders/${order.id}` }]} />
+
+    {placed && (
+      <div role="status" class="mb-8 rounded-2xl bg-primary p-6 text-primary-foreground">
+        <h1 class="text-3xl text-white">Thank you! Order {order.id} is placed.</h1>
+        <p class="mt-2 text-white/85">Our team will confirm it and send payment details on WhatsApp shortly. Nothing to pay yet.</p>
+      </div>
+    )}
+    {!placed && <h1 class="mb-6 text-4xl">Order {order.id}</h1>}
+
+    <div class="grid gap-8 lg:grid-cols-[1fr_22rem]">
+      <div class="rounded-xl border bg-card">
+        <ul class="divide-y">
+          {order.items.map((i) => (
+            <li class="flex justify-between gap-4 p-4">
+              <span><a href={`/products/${i.productSlug}`} class="font-medium hover:underline">{i.name}</a> <span class="text-sm text-muted-foreground">· {[i.grainSize, i.packSize].filter(Boolean).join(' · ')} · {i.quantity} × {inr(i.unitPrice)}</span></span>
+              <span class="tabular-nums">{inr(i.unitPrice * i.quantity)}</span>
+            </li>
+          ))}
+        </ul>
+        <dl class="space-y-2 border-t p-4 text-sm">
+          <div class="flex justify-between"><dt class="text-muted-foreground">Subtotal (incl. GST)</dt><dd>{inr(order.subtotal)}</dd></div>
+          <div class="flex justify-between"><dt class="text-muted-foreground">Delivery</dt><dd>{order.deliveryFee === 0 ? 'Free' : order.deliveryFee == null ? 'Confirmed on WhatsApp' : inr(order.deliveryFee)}</dd></div>
+          <div class="flex justify-between text-base font-semibold"><dt>Total</dt><dd>{inr(order.total)}{order.deliveryFee == null && <span class="font-normal text-muted-foreground"> + delivery</span>}</dd></div>
+        </dl>
+      </div>
+
+      <aside class="h-fit space-y-4 rounded-xl border bg-card p-5 text-sm">
+        <p><span class="text-muted-foreground">Status</span><br /><strong class="text-base">{STATUS_LABEL[order.status]}</strong></p>
+        <p><span class="text-muted-foreground">Placed</span><br />{when}</p>
+        <p><span class="text-muted-foreground">Deliver to</span><br />{a.name}, {formatPhone(a.phone)}<br />{a.line1}{a.line2 && <>, {a.line2}</>}<br />{a.city}, {a.state} {a.pincode}</p>
+        {order.gstin && <p><span class="text-muted-foreground">GSTIN</span><br />{order.gstin}</p>}
+        {order.note && <p><span class="text-muted-foreground">Your note</span><br />{order.note}</p>}
+        <a href={whatsappLink(`Hi! About my order ${order.id}…`)} class="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-semibold hover:bg-accent">Questions? WhatsApp us</a>
+      </aside>
+    </div>
+  </section>
+</BaseLayout>

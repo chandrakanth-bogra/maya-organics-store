@@ -20,8 +20,17 @@
     }
   ],
   "images": { "binding": "IMAGES" },
+  // WhatsApp bot: new-order alerts and login codes (POST with the shared LEAD_SECRET).
+  "services": [{ "binding": "BOT", "service": "mayaorganics-whatsapp" }],
+  // Login attempts per IP (Workers Rate Limiting; period must be 10 or 60 s).
+  "ratelimits": [{ "name": "LOGIN_LIMIT", "namespace_id": "1101", "simple": { "limit": 6, "period": 60 } }],
   "vars": {
-    "WHATSAPP_NUMBER": "917680945577"
+    "WHATSAPP_NUMBER": "917680945577",
+    // Turnstile site key (public). Test key until the real widget exists; secret: TURNSTILE_SECRET.
+    "TURNSTILE_SITE_KEY": "1x00000000000000000000AA",
+    // Typed-code logins we can send ("whatsapp_code", "sms"); empty = WhatsApp login only.
+    "LOGIN_CODE_CHANNELS": ""
   },
+  // Secrets (wrangler secret put): TURNSTILE_SECRET, LEAD_SECRET (same value as the bot's).
   "observability": { "enabled": true }
 }

@@ -1,0 +1,175 @@
+---
+/**
+ * Account: profile, saved addresses, orders. Plain HTML forms (POST back here,
+ * then redirect), so it works without JavaScript.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import {
+  cleanAddress, cleanProfile, deleteAddress, endSession, formatPhone, getAddress, INDIAN_STATES, listAddresses, listOrders,
+  saveAddress, updateProfile,
+} from '@maya/db';
+import { clearCookie, db, SESSION_COOKIE } from '../../lib/session';
+import { safeNext } from '../../lib/login';
+import { inr } from '../../lib/format';
+import { STATUS_LABEL } from '../../lib/orders';
+
+const customer = Astro.locals.customer!;
+const d = db();
+let errors: Record<string, string> = {};
+let form: Record<string, string> = {};
+let formFor = '';
+
+if (Astro.request.method === 'POST') {
+  const data = Object.fromEntries(await Astro.request.formData()) as Record<string, string>;
+  const action = data.action;
+  if (action === 'logout') {
+    await endSession(d, Astro.cookies.get(SESSION_COOKIE)?.value);
+    clearCookie(Astro.cookies, SESSION_COOKIE);
+    return Astro.redirect('/');
+  }
+  if (action === 'profile') {
+    const r = cleanProfile(data);
+    if (r.ok) {
+      await updateProfile(d, customer.id, r.value);
+      return Astro.redirect(data.next ? safeNext(data.next) : '/account?saved=profile');
+    }
+    errors = r.errors; form = data; formFor = 'profile';
+  }
+  if (action === 'address') {
+    const r = cleanAddress(data);
+    if (r.ok) {
+      await saveAddress(d, customer.id, r.value, data.id || undefined);
+      return Astro.redirect('/account?saved=address#addresses');
+    }
+    errors = r.errors; form = data; formFor = 'address';
+  }
+  if (action === 'delete-address' && data.id) {
+    await deleteAddress(d, customer.id, data.id);
+    return Astro.redirect('/account#addresses');
+  }
+}
+
+const [addresses, orders] = await Promise.all([listAddresses(d, customer.id), listOrders(d, customer.id, 20)]);
+const welcome = Astro.url.searchParams.get('welcome') === '1' || !customer.name;
+const next = Astro.url.searchParams.get('next');
+const saved = Astro.url.searchParams.get('saved');
+const editId = Astro.url.searchParams.get('edit');
+const editing = formFor === 'address' ? form : editId ? (await getAddress(d, customer.id, editId)) ?? null : null;
+const af = (k: string) => String((editing as Record<string, unknown> | null)?.[k] ?? '');
+const pf = (k: 'name' | 'email' | 'gstin') => (formFor === 'profile' ? form[k] : customer[k]) ?? '';
+const dateFmt = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+const input = 'h-11 w-full rounded-lg border bg-transparent px-3 text-sm';
+const label = 'mb-1.5 block text-sm font-medium';
+---
+<BaseLayout title="Your account" description="Your Maya Organics account." noindex>
+  <section class="container-page py-10 md:py-14">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <span class="eyebrow">{formatPhone(customer.phone)}</span>
+        <h1 class="text-4xl">{customer.name ? `Hi, ${customer.name.split(' ')[0]}` : 'Your account'}</h1>
+      </div>
+      <form method="post"><button name="action" value="logout" class="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground">Log out</button></form>
+    </div>
+
+    {saved && <p role="status" class="mt-6 rounded-lg bg-accent px-4 py-3 text-sm text-accent-foreground">Saved.</p>}
+
+    <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_1.4fr]">
+      <!-- Profile -->
+      <section class="rounded-xl border bg-card p-5" aria-labelledby="profile">
+        <h2 id="profile" class="text-2xl">{welcome ? 'What should we call you?' : 'Your details'}</h2>
+        <form method="post" class="mt-4 space-y-4">
+          <input type="hidden" name="action" value="profile" />
+          {next && <input type="hidden" name="next" value={next} />}
+          <div>
+            <label for="p-name" class={label}>Name</label>
+            <input id="p-name" name="name" autocomplete="name" value={pf('name')} required class={input} aria-invalid={errors.name ? 'true' : undefined} autofocus={welcome} />
+            {formFor === 'profile' && errors.name && <p class="mt-1 text-xs text-destructive">{errors.name}</p>}
+          </div>
+          <div>
+            <label for="p-email" class={label}>Email (optional, for invoices)</label>
+            <input id="p-email" name="email" type="email" autocomplete="email" value={pf('email')} class={input} />
+            {formFor === 'profile' && errors.email && <p class="mt-1 text-xs text-destructive">{errors.email}</p>}
+          </div>
+          <div>
+            <label for="p-gstin" class={label}>GSTIN (optional)</label>
+            <input id="p-gstin" name="gstin" value={pf('gstin')} maxlength="15" class={`${input} uppercase`} />
+            {formFor === 'profile' && errors.gstin && <p class="mt-1 text-xs text-destructive">{errors.gstin}</p>}
+          </div>
+          <button class="inline-flex h-11 items-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90">{welcome && next ? 'Save and continue' : 'Save'}</button>
+        </form>
+      </section>
+
+      <!-- Orders -->
+      <section class="rounded-xl border bg-card p-5" aria-labelledby="orders">
+        <h2 id="orders" class="text-2xl">Your orders</h2>
+        {orders.length ? (
+          <ul class="mt-4 divide-y">
+            {orders.map((o) => (
+              <li>
+                <a href={`/account/orders/${o.id}`} class="flex flex-wrap items-center justify-between gap-2 py-3 hover:bg-accent/50">
+                  <span><strong>{o.id}</strong> <span class="text-sm text-muted-foreground">· {dateFmt(o.createdAt)} · {o.items.reduce((n, i) => n + i.quantity, 0)} items</span></span>
+                  <span class="text-sm"><span class="mr-3 rounded-full bg-secondary px-2 py-0.5">{STATUS_LABEL[o.status]}</span><strong>{inr(o.total)}</strong></span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="mt-4 text-muted-foreground">No orders yet. <a href="/products" class="text-heading underline underline-offset-2">Start shopping →</a></p>
+        )}
+      </section>
+    </div>
+
+    <!-- Addresses -->
+    <section id="addresses" class="mt-8 rounded-xl border bg-card p-5" aria-labelledby="addr-h">
+      <h2 id="addr-h" class="text-2xl">Delivery addresses</h2>
+      {addresses.length > 0 && (
+        <ul class="mt-4 grid gap-3 sm:grid-cols-2">
+          {addresses.map((a) => (
+            <li class="rounded-lg border p-4 text-sm">
+              <p><strong>{a.label}</strong>{a.isDefault && <span class="ml-2 rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">Default</span>}</p>
+              <p class="mt-1 text-muted-foreground">{a.name}, {formatPhone(a.phone)}<br />{a.line1}{a.line2 && <>, {a.line2}</>}<br />{a.city}, {a.state} {a.pincode}</p>
+              <div class="mt-3 flex gap-4">
+                <a href={`/account?edit=${a.id}#address-form`} class="text-heading underline underline-offset-2">Edit</a>
+                <form method="post"><input type="hidden" name="action" value="delete-address" /><input type="hidden" name="id" value={a.id} /><button class="text-muted-foreground underline underline-offset-2 hover:text-destructive">Delete</button></form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form id="address-form" method="post" class="mt-6 grid gap-4 sm:grid-cols-2">
+        <input type="hidden" name="action" value="address" />
+        {editing && 'id' in editing && editing.id && <input type="hidden" name="id" value={af('id')} />}
+        <p class="font-medium sm:col-span-2">{editing && af('id') ? 'Edit address' : 'Add an address'}</p>
+        {[
+          ['label', 'Label (Home, Office…)', 'off', false],
+          ['name', 'Recipient name', 'name', true],
+          ['phone', 'Recipient mobile', 'tel', true],
+          ['line1', 'House / street', 'address-line1', true],
+          ['line2', 'Area / landmark (optional)', 'address-line2', false],
+          ['city', 'City', 'address-level2', true],
+          ['pincode', 'Pincode', 'postal-code', true],
+        ].map(([k, l, auto, req]) => (
+          <div class={k === 'line1' || k === 'line2' ? 'sm:col-span-2' : ''}>
+            <label for={`a-${k}`} class={label}>{l}</label>
+            <input id={`a-${k}`} name={k as string} autocomplete={auto as string} required={req as boolean} value={k === 'phone' && af('phone') ? af('phone').slice(-10) : af(k as string)} class={input}
+              inputmode={k === 'pincode' || k === 'phone' ? 'numeric' : undefined} aria-invalid={formFor === 'address' && errors[k as string] ? 'true' : undefined} />
+            {formFor === 'address' && errors[k as string] && <p class="mt-1 text-xs text-destructive">{errors[k as string]}</p>}
+          </div>
+        ))}
+        <div>
+          <label for="a-state" class={label}>State</label>
+          <select id="a-state" name="state" autocomplete="address-level1" required class={input}>
+            {INDIAN_STATES.map((s) => <option value={s} selected={(af('state') || 'Telangana') === s}>{s}</option>)}
+          </select>
+          {formFor === 'address' && errors.state && <p class="mt-1 text-xs text-destructive">{errors.state}</p>}
+        </div>
+        <label class="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="isDefault" checked={af('isDefault') === 'true'} class="accent-[var(--primary)]" /> Make this my default address</label>
+        <div class="flex gap-3 sm:col-span-2">
+          <button class="inline-flex h-11 items-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Save address</button>
+          {editId && <a href="/account#addresses" class="inline-flex h-11 items-center rounded-lg border px-6 text-sm font-semibold hover:bg-accent">Cancel</a>}
+        </div>
+      </form>
+    </section>
+  </section>
+</BaseLayout>

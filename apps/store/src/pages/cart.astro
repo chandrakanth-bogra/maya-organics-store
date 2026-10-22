@@ -1,0 +1,12 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CartView from '../components/CartView';
+
+export const prerender = true;
+---
+<BaseLayout title="Your cart" description="Your Maya Organics cart." noindex>
+  <section class="container-page py-10 md:py-14">
+    <h1 class="mb-8 text-4xl">Your cart</h1>
+    <CartView client:load />
+  </section>
+</BaseLayout>

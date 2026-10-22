@@ -1,0 +1,22 @@
+---
+import { env } from 'cloudflare:workers';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LoginForm from '../components/LoginForm';
+import { codeChannels, safeNext } from '../lib/login';
+
+const next = safeNext(Astro.url.searchParams.get('next'));
+if (Astro.locals.customer) return Astro.redirect(next);
+---
+<BaseLayout title="Log in" description="Log in to Maya Organics with your mobile number — no password needed." noindex>
+  <section class="container-page py-12 md:py-20">
+    <div class="mx-auto max-w-md rounded-2xl border bg-card p-6 shadow-sm md:p-8">
+      <span class="eyebrow">Your account</span>
+      <h1 class="text-4xl">Log in</h1>
+      <p class="mt-2 mb-6 text-muted-foreground">No password — just your WhatsApp number.</p>
+      <LoginForm client:load siteKey={env.TURNSTILE_SITE_KEY} channels={codeChannels()} next={next} />
+    </div>
+    <p class="mx-auto mt-6 max-w-md text-center text-xs text-muted-foreground">
+      By logging in you agree to our <a href="/terms" class="underline underline-offset-2">terms</a> and <a href="/privacy" class="underline underline-offset-2">privacy policy</a>.
+    </p>
+  </section>
+</BaseLayout>

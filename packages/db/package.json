@@ -8,12 +8,13 @@
   },
   "scripts": {
     "generate": "drizzle-kit generate",
-    "test": "node --test"
+    "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.11"
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15"
   }
 }
