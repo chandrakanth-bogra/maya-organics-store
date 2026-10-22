@@ -1,0 +1,51 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import { breadcrumbLd } from '../lib/seo';
+import { SITE, whatsappLink } from '../lib/site';
+
+export const prerender = true;
+
+const crumbs = [{ name: 'Home', path: '/' }, { name: 'Contact', path: '/contact' }];
+const contactLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ContactPage',
+  url: `${SITE.url}/contact`,
+  about: { '@id': `${SITE.url}/#organization` },
+};
+---
+<BaseLayout
+  title="Contact Us"
+  description={`Talk to ${SITE.name} on WhatsApp ${SITE.phoneDisplay} or email ${SITE.email}. Orders, mix advice and bulk quotes.`}
+  jsonLd={[contactLd, breadcrumbLd(crumbs)]}
+>
+  <section class="container-page py-12 md:py-16">
+    <Breadcrumbs items={crumbs} />
+    <span class="eyebrow">Get in touch</span>
+    <h1>We're on WhatsApp</h1>
+    <p class="mt-4 max-w-2xl text-muted-foreground">The fastest way to reach us. Ask about an order, a potting mix for your plant, or quantities for your nursery.</p>
+
+    <div class="mt-10 grid gap-5 md:grid-cols-3">
+      <a href={whatsappLink('Hi Maya Organics!')} class="group rounded-xl border bg-card p-6 transition-shadow hover:shadow-lg hover:shadow-primary/10">
+        <h2 class="text-xl">WhatsApp</h2>
+        <p class="mt-2 text-lg font-semibold text-foreground">{SITE.phoneDisplay}</p>
+        <p class="mt-1 text-sm text-muted-foreground">Orders, mix advice, delivery questions</p>
+        <p class="mt-4 text-sm font-semibold text-heading group-hover:underline">Start a chat →</p>
+      </a>
+      <a href={`mailto:${SITE.email}`} class="group rounded-xl border bg-card p-6 transition-shadow hover:shadow-lg hover:shadow-primary/10">
+        <h2 class="text-xl">Email</h2>
+        <p class="mt-2 text-lg font-semibold text-foreground">{SITE.email}</p>
+        <p class="mt-1 text-sm text-muted-foreground">Invoices, GST details, anything in writing</p>
+        <p class="mt-4 text-sm font-semibold text-heading group-hover:underline">Write to us →</p>
+      </a>
+      <a href={SITE.b2bUrl} class="group rounded-xl border bg-card p-6 transition-shadow hover:shadow-lg hover:shadow-primary/10">
+        <h2 class="text-xl">Bulk &amp; business</h2>
+        <p class="mt-2 text-lg font-semibold text-foreground">mayaorganics.org</p>
+        <p class="mt-1 text-sm text-muted-foreground">Tonnes, nurseries, custom grades, GST invoices</p>
+        <p class="mt-4 text-sm font-semibold text-heading group-hover:underline">Request a quote →</p>
+      </a>
+    </div>
+
+    <p class="mt-10 text-sm text-muted-foreground">We pack and ship from {SITE.locality}, {SITE.region}, and deliver across India.</p>
+  </section>
+</BaseLayout>

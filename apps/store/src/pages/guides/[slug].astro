@@ -1,0 +1,62 @@
+---
+import { getCollection, getEntries, render, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { articleLd, breadcrumbLd } from '../../lib/seo';
+import { SITE, whatsappLink } from '../../lib/site';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const guides = await getCollection('guides');
+  return guides.map((guide) => ({ params: { slug: guide.id }, props: { guide } }));
+}
+
+interface Props { guide: CollectionEntry<'guides'> }
+const { guide } = Astro.props;
+const { Content } = await render(guide);
+const d = guide.data;
+const path = `/guides/${guide.id}`;
+const crumbs = [{ name: 'Home', path: '/' }, { name: 'Guides', path: '/guides' }, { name: d.title, path }];
+// Product names come from the product copy (prerendered pages do not read the live catalogue).
+const products = (await getEntries(d.products.map((id) => ({ collection: 'products' as const, id })))).filter(Boolean);
+const dateFmt = (x: Date) => x.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+---
+<BaseLayout
+  title={d.title}
+  description={d.description}
+  type="article"
+  jsonLd={[
+    articleLd({ title: d.title, description: d.description, url: `${SITE.url}${path}`, published: d.published, updated: d.updated }),
+    breadcrumbLd(crumbs),
+  ]}
+>
+  <article class="container-page py-10 md:py-14">
+    <Breadcrumbs items={crumbs} />
+    <div class="mx-auto max-w-3xl">
+      <span class="eyebrow">{d.category}</span>
+      <h1>{d.title}</h1>
+      <p class="mt-3 text-sm text-muted-foreground">
+        <time datetime={(d.updated ?? d.published).toISOString().slice(0, 10)}>{d.updated ? `Updated ${dateFmt(d.updated)}` : dateFmt(d.published)}</time>{' · '}{d.readMinutes} min read
+      </p>
+
+      <div class="prose-maya mt-8 [&_table]:my-6 [&_table]:w-full [&_table]:text-sm [&_td]:border-b [&_td]:px-3 [&_td]:py-2 [&_th]:border-b [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-foreground [&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:pl-5">
+        <Content />
+      </div>
+
+      {products.length > 0 && (
+        <aside class="mt-12 rounded-2xl bg-secondary p-6" aria-labelledby="used-here">
+          <h2 id="used-here" class="text-2xl">Products in this guide</h2>
+          <ul class="mt-4 flex flex-wrap gap-3">
+            {products.map((p) => (
+              <li><a href={`/products/${p!.id}`} class="inline-flex h-10 items-center rounded-lg border border-primary bg-background px-4 text-sm font-semibold text-heading hover:bg-accent">{p!.data.title.split(/ (for|—)/)[0]} →</a></li>
+            ))}
+          </ul>
+          <p class="mt-4 text-sm text-muted-foreground">
+            Not sure what your plant needs? <a class="text-heading underline underline-offset-2" href={whatsappLink(`Hi! I read "${d.title}" and have a question.`)}>Ask us on WhatsApp</a>.
+          </p>
+        </aside>
+      )}
+    </div>
+  </article>
+</BaseLayout>

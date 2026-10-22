@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { whatsappLink } from '../lib/site';
+
+---
+<BaseLayout title="Page not found" description="This page does not exist. Browse our products and guides instead." noindex>
+  <section class="container-page py-20 text-center">
+    <span class="eyebrow">404</span>
+    <h1>We couldn't find that page.</h1>
+    <p class="mx-auto mt-4 max-w-md text-muted-foreground">It may have moved. Try the shop or the guides — or ask us on WhatsApp.</p>
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
+      <a href="/products" class="inline-flex h-11 items-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Shop products</a>
+      <a href="/guides" class="inline-flex h-11 items-center rounded-lg border px-6 text-sm font-semibold hover:bg-accent">Read guides</a>
+      <a href={whatsappLink()} class="inline-flex h-11 items-center rounded-lg border px-6 text-sm font-semibold hover:bg-accent">WhatsApp us</a>
+    </div>
+  </section>
+</BaseLayout>

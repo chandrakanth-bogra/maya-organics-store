@@ -1,0 +1,41 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import { breadcrumbLd } from '../../lib/seo';
+import { SITE } from '../../lib/site';
+
+export const prerender = true;
+
+const guides = (await getCollection('guides')).sort((a, b) => a.data.category.localeCompare(b.data.category) || a.data.title.localeCompare(b.data.title));
+const crumbs = [{ name: 'Home', path: '/' }, { name: 'Guides', path: '/guides' }];
+
+const listLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  itemListElement: guides.map((g, i) => ({ '@type': 'ListItem', position: i + 1, url: `${SITE.url}/guides/${g.id}`, name: g.data.title })),
+};
+---
+<BaseLayout
+  title="Growing Guides: Potting Mixes, Drainage & Soil Amendments"
+  description="Practical guides to potting mixes, drainage, LECA, cocopeat, perlite, vermicompost, zeolite and neem cake — written for Indian gardens."
+  jsonLd={[listLd, breadcrumbLd(crumbs)]}
+>
+  <section class="container-page py-12 md:py-16">
+    <Breadcrumbs items={crumbs} />
+    <span class="eyebrow">Learn</span>
+    <h1>Growing guides</h1>
+    <p class="mt-4 max-w-2xl text-muted-foreground">How to build a potting mix that drains, breathes and feeds — and which ingredient does what.</p>
+
+    <ul class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {guides.map((g) => (
+        <li class="relative flex flex-col rounded-xl border bg-card p-5 transition-shadow hover:shadow-lg hover:shadow-primary/10">
+          <span class="eyebrow mb-2">{g.data.category}</span>
+          <h2 class="text-xl"><a href={`/guides/${g.id}`} class="after:absolute after:inset-0">{g.data.title}</a></h2>
+          <p class="mt-2 line-clamp-3 text-sm text-muted-foreground">{g.data.description}</p>
+          <p class="mt-auto pt-4 text-xs text-muted-foreground">{g.data.readMinutes} min read</p>
+        </li>
+      ))}
+    </ul>
+  </section>
+</BaseLayout>

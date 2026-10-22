@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import { breadcrumbLd } from '../lib/seo';
+import { SITE } from '../lib/site';
+
+export const prerender = true;
+
+// Update this page (and the date) when accounts and online payment go live.
+const updated = '22 October 2026';
+const crumbs = [{ name: 'Home', path: '/' }, { name: 'Privacy', path: '/privacy' }];
+---
+<BaseLayout
+  title="Privacy Policy"
+  description={`What ${SITE.name} collects when you shop or message us, why, and what you can ask us to do with it.`}
+  jsonLd={[breadcrumbLd(crumbs)]}
+>
+  <article class="container-page py-12 md:py-16">
+    <Breadcrumbs items={crumbs} />
+    <div class="mx-auto max-w-3xl">
+      <h1>Privacy policy</h1>
+      <p class="mt-3 text-sm text-muted-foreground">Last updated: {updated}</p>
+      <div class="prose-maya mt-8">
+        <p>{SITE.name} ("we", "us") sells soil amendments and growing media from {SITE.locality}, {SITE.region}, India. This policy covers {SITE.url.replace('https://', '')}. Our business site, mayaorganics.org, has its own policy.</p>
+
+        <h2>What we collect</h2>
+        <ul>
+          <li><strong>Order details:</strong> your name, phone/WhatsApp number, delivery address and what you order.</li>
+          <li><strong>WhatsApp messages:</strong> when you message us or tap a WhatsApp button, WhatsApp (Meta) processes the conversation under its own terms, and we see what you send. Our WhatsApp assistant may answer first; a team member can read the conversation.</li>
+          <li><strong>Technical data:</strong> our hosting provider, Cloudflare, processes IP addresses and request data to deliver and secure the site.</li>
+          <li><strong>Local settings:</strong> your light or dark theme choice is stored in your own browser and is not sent to us.</li>
+        </ul>
+
+        <h2>Why we use it</h2>
+        <ul>
+          <li>To take, deliver and support your orders, and to answer your questions.</li>
+          <li>To keep records of sales, as tax and accounting law requires.</li>
+          <li>To keep the site secure and prevent spam and abuse.</li>
+        </ul>
+        <p>We do not sell your information, and we do not send marketing messages unless you ask us to.</p>
+
+        <h2>Who we share it with</h2>
+        <p>Only providers that help us run the business — Cloudflare (hosting), WhatsApp (messaging), Zoho (quotes and invoices) and courier partners when an order ships — or when the law requires it.</p>
+
+        <h2>How long we keep it</h2>
+        <p>Order and invoice records are kept for as long as tax and accounting law requires. Conversations that do not lead to an order are kept for up to 24 months.</p>
+
+        <h2>Your choices</h2>
+        <p>You can ask us to show, correct or delete the personal information we hold about you, or to stop contacting you, by emailing <a href={`mailto:${SITE.email}`}>{SITE.email}</a>. We reply within 10 business days. Some records must be kept to meet legal obligations.</p>
+
+        <h2>Security</h2>
+        <p>The site is served over HTTPS on Cloudflare's infrastructure. No system is completely secure, so please never send card details or passwords over WhatsApp or email.</p>
+      </div>
+    </div>
+  </article>
+</BaseLayout>

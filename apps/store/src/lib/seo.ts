@@ -143,5 +143,22 @@ export function itemListLd(products: CatalogueProduct[]): Json {
   };
 }
 
+export function articleLd(a: { title: string; description: string; url: string; published: Date; updated?: Date; image?: string }): Json {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: a.title,
+    description: a.description,
+    url: a.url,
+    mainEntityOfPage: a.url,
+    datePublished: a.published.toISOString().slice(0, 10),
+    dateModified: (a.updated ?? a.published).toISOString().slice(0, 10),
+    ...(a.image ? { image: [a.image] } : {}),
+    author: { '@id': orgId },
+    publisher: { '@id': orgId },
+    inLanguage: 'en-IN',
+  };
+}
+
 /** Serialise for a <script type="application/ld+json"> without breaking out of the tag. */
 export const ldJson = (data: Json | Json[]) => JSON.stringify(data).replace(/</g, '\\u003c');

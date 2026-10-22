@@ -21,4 +21,18 @@ const products = defineCollection({
   }),
 });
 
-export const collections = { products };
+/** How-to guides and ingredient explainers (prerendered; link to products by slug). */
+const guides = defineCollection({
+  loader: glob({ pattern: '*.md', base: './src/content/guides' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string().max(170),
+    category: z.string(),
+    readMinutes: z.number().int().positive(),
+    published: z.coerce.date(),
+    updated: z.coerce.date().optional(),
+    products: z.array(z.string()).default([]),
+  }),
+});
+
+export const collections = { products, guides };

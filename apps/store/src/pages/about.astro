@@ -1,0 +1,51 @@
+---
+import { Picture } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import { breadcrumbLd } from '../lib/seo';
+import { SITE } from '../lib/site';
+import photo from '../assets/images/about-1.jpg';
+
+export const prerender = true;
+
+const crumbs = [{ name: 'Home', path: '/' }, { name: 'About', path: '/about' }];
+const values = [
+  ['Horticultural grade', 'We only source minerals that meet horticultural standards. No fillers.'],
+  ['Sensible pack sizes', 'Small packs for home gardeners, larger ones for serious growers and nurseries.'],
+  ['Straight answers', 'We tell you what each product does and how to use it — and help on WhatsApp.'],
+  ['Fair prices', 'Good amendments should not cost a premium. We price fairly for plant lovers.'],
+];
+---
+<BaseLayout
+  title="About Us"
+  description={`Why we started ${SITE.name}: horticultural-grade perlite, pumice, LECA, cocopeat and more, packed honestly and shipped across India from Telangana.`}
+  jsonLd={[breadcrumbLd(crumbs)]}
+>
+  <section class="container-page py-12 md:py-16">
+    <Breadcrumbs items={crumbs} />
+    <div class="grid items-center gap-10 md:grid-cols-2">
+      <div>
+        <span class="eyebrow">Our story</span>
+        <h1>Good soil shouldn't be hard to find.</h1>
+        <div class="prose-maya mt-6">
+          <p>We started {SITE.name} because we were frustrated. Good perlite, proper pumice, expanded clay (LECA), cocopeat — simple things serious growers need — were unavailable, overpriced, or impossible to verify.</p>
+          <p>We're growers first. When we couldn't find horticultural-grade amendments in quantities that made sense for a home setup — not a commercial farm, not a single overpriced sachet — we started sourcing directly.</p>
+          <p>What began as solving our own problem became {SITE.name}. We source the amendments serious growers actually use, pack them honestly, and ship them across India.</p>
+          <p><strong>Based in {SITE.locality}, {SITE.region}. Shipping across India.</strong></p>
+        </div>
+      </div>
+      <div class="overflow-hidden rounded-2xl">
+        <Picture src={photo} alt="Maya Organics soil amendments" formats={['avif', 'webp']} widths={[480, 720, 960]} sizes="(min-width: 768px) 45vw, 92vw" class="aspect-[4/3] w-full object-cover" />
+      </div>
+    </div>
+
+    <ul class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {values.map(([t, b]) => (
+        <li class="rounded-xl border bg-card p-5">
+          <h2 class="text-xl">{t}</h2>
+          <p class="mt-2 text-sm text-muted-foreground">{b}</p>
+        </li>
+      ))}
+    </ul>
+  </section>
+</BaseLayout>

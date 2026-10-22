@@ -9,7 +9,7 @@ import { inr } from '../../lib/format';
 import { SITE, whatsappLink } from '../../lib/site';
 
 const product = await loadProduct(Astro.params.slug ?? '');
-if (!product) return new Response(null, { status: 404, statusText: 'Not found' });
+if (!product) return Astro.rewrite('/404');
 
 const { copy, variants } = product;
 const { Content } = await render(copy);
