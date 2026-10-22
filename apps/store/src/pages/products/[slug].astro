@@ -6,7 +6,7 @@ import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import { loadProduct, productImage } from '../../lib/catalogue';
 import { productLd, breadcrumbLd, faqLd } from '../../lib/seo';
 import { inr } from '../../lib/format';
-import { SITE, whatsappLink } from '../../lib/site';
+import { SITE, POLICY, whatsappLink } from '../../lib/site';
 
 const product = await loadProduct(Astro.params.slug ?? '');
 if (!product) return Astro.rewrite('/404');
@@ -74,7 +74,7 @@ Astro.response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=300');
             <span class="ml-1 text-base font-normal text-muted-foreground">/ {selected.packSize}</span>
           </p>
         )}
-        <p class="mt-1 text-sm text-muted-foreground">Inclusive of GST</p>
+        <p class="mt-1 text-sm text-muted-foreground">Inclusive of GST · <a href="/shipping" class="underline underline-offset-2 hover:text-foreground">Free delivery above {inr(POLICY.freeDeliveryAbove)}</a></p>
 
         {variants.length > 1 && (
           <fieldset class="mt-6">

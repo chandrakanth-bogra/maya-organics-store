@@ -1,0 +1,32 @@
+---
+import PolicyPage from '../components/PolicyPage.astro';
+import { SITE, POLICY, whatsappLink } from '../lib/site';
+import { inr } from '../lib/format';
+
+export const prerender = true;
+const free = inr(POLICY.freeDeliveryAbove);
+---
+<PolicyPage
+  title="Shipping & Delivery"
+  description={`Free delivery across India on orders above ${free}. How we pack, ship and track your order from ${SITE.locality}.`}
+  path="/shipping"
+  updated="22 October 2026"
+>
+  <h2>Delivery charges</h2>
+  <ul>
+    <li><strong>Orders above {free}: free delivery</strong> anywhere we ship in India.</li>
+    <li>Orders of {free} or less: a delivery charge is added. You see the exact amount before you pay.</li>
+  </ul>
+
+  <h2>Where we ship</h2>
+  <p>We pack every order in {SITE.locality}, {SITE.region}, and ship across India through courier partners. If a pincode is not serviceable, we tell you before you pay.</p>
+
+  <h2>When your order ships</h2>
+  <p>We confirm your order on WhatsApp and ship it once payment is received. As soon as it leaves us, we send the courier name and tracking link on WhatsApp. Delivery time depends on your pincode.</p>
+
+  <h2>Bulk orders</h2>
+  <p>For nursery or farm quantities, freight is quoted separately — see <a href={SITE.b2bUrl}>mayaorganics.org</a>.</p>
+
+  <h2>Questions</h2>
+  <p>Message us on <a href={whatsappLink('Hi! I have a question about delivery.')}>WhatsApp {SITE.phoneDisplay}</a> or email <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.</p>
+</PolicyPage>

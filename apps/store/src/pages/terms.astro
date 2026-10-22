@@ -1,0 +1,38 @@
+---
+import PolicyPage from '../components/PolicyPage.astro';
+import { SITE } from '../lib/site';
+
+export const prerender = true;
+---
+<PolicyPage
+  title="Terms of Sale"
+  description={`The terms that apply when you buy from ${SITE.name}: prices, orders, payment, delivery and liability.`}
+  path="/terms"
+  updated="22 October 2026"
+>
+  <p>These terms apply when you buy from {SITE.url.replace('https://', '')}, run by {SITE.name}, {SITE.locality}, {SITE.region}, India. Placing an order means you accept them.</p>
+
+  <h2>Prices</h2>
+  <p>All prices are in Indian rupees and <strong>include GST</strong>. Delivery charges, if any, are shown before you pay. We may change prices at any time; the price shown when you place your order is the one you pay.</p>
+
+  <h2>Orders</h2>
+  <p>An order is confirmed when we accept it on WhatsApp and receive payment. We may decline or cancel an order — for example if an item is out of stock or a price was shown in error — and will refund anything you have paid.</p>
+
+  <h2>Payment</h2>
+  <p>We share payment details on WhatsApp when we confirm your order. We never ask for card numbers or passwords over WhatsApp or email.</p>
+
+  <h2>Delivery, returns and refunds</h2>
+  <p>See our <a href="/shipping">Shipping &amp; Delivery</a> and <a href="/returns">Returns &amp; Refunds</a> pages.</p>
+
+  <h2>Using our products</h2>
+  <p>Our guides and advice are general information. Results depend on your plants, climate and care. Store products dry and out of reach of children and pets, and follow the usage notes on each product page.</p>
+
+  <h2>Liability</h2>
+  <p>Our responsibility for any order is limited to the amount you paid for it. Nothing here limits your rights under Indian consumer law.</p>
+
+  <h2>Business invoices</h2>
+  <p>Need a GST invoice? Add your GSTIN when ordering or tell us on WhatsApp before we invoice.</p>
+
+  <h2>Contact</h2>
+  <p>Questions or complaints: <a href={`mailto:${SITE.email}`}>{SITE.email}</a> or WhatsApp {SITE.phoneDisplay}. These terms are governed by the laws of India.</p>
+</PolicyPage>

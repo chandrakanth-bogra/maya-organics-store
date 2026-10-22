@@ -1,0 +1,29 @@
+---
+import PolicyPage from '../components/PolicyPage.astro';
+import { SITE, POLICY, whatsappLink } from '../lib/site';
+
+export const prerender = true;
+---
+<PolicyPage
+  title="Returns & Refunds"
+  description="We do not accept returns. Damaged or wrong items are replaced or refunded — here is how to tell us."
+  path="/returns"
+  updated="22 October 2026"
+>
+  <h2>No returns</h2>
+  <p>Our products are loose growing media and soil amendments, so <strong>we do not accept returns</strong> once an order is delivered. Please check the product and size before ordering — and ask us on WhatsApp if you are unsure what your plants need.</p>
+
+  <h2>Damaged, missing or wrong items</h2>
+  <p>If your order arrives damaged, incomplete or is not what you ordered:</p>
+  <ol>
+    <li>Message us on <a href={whatsappLink('Hi! There is a problem with my order.')}>WhatsApp {SITE.phoneDisplay}</a> within <strong>{POLICY.damageReportHours} hours of delivery</strong>.</li>
+    <li>Send your order number and clear photos of the package and the product.</li>
+    <li>We will replace the item or refund it to your original payment method.</li>
+  </ol>
+
+  <h2>Cancellations</h2>
+  <p>You can cancel an order free of charge until it is shipped. Once it has left us, it cannot be cancelled.</p>
+
+  <h2>Refund timing</h2>
+  <p>Approved refunds are sent within 7 working days. Your bank may take a few more days to show it.</p>
+</PolicyPage>

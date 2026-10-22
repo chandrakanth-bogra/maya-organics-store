@@ -9,7 +9,7 @@ import { env } from 'cloudflare:workers';
 import { getDb, listProducts } from '@maya/db';
 import { SITE } from '../lib/site';
 
-const STATIC = ['/', '/products', '/guides', '/about', '/contact', '/privacy'];
+const STATIC = ['/', '/products', '/guides', '/about', '/contact', '/shipping', '/returns', '/terms', '/privacy'];
 
 const xmlEscape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 

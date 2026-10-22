@@ -2,7 +2,7 @@
  * Schema.org JSON-LD for search engines and AI agents.
  * Prices come from the live catalogue, so rich results always match the page.
  */
-import { SITE } from './site';
+import { SITE, POLICY } from './site';
 import { amount } from './format';
 import type { CatalogueProduct } from './catalogue';
 import type { Variant } from '@maya/db';
@@ -10,6 +10,14 @@ import type { Variant } from '@maya/db';
 type Json = Record<string, unknown>;
 
 const orgId = `${SITE.url}/#organization`;
+
+/** No returns (damaged/wrong items are handled case by case, see /returns). */
+const returnPolicy = () => ({
+  '@type': 'MerchantReturnPolicy',
+  applicableCountry: SITE.country,
+  returnPolicyCategory: POLICY.returns ? 'https://schema.org/MerchantReturnFiniteReturnWindow' : 'https://schema.org/MerchantReturnNotPermitted',
+  url: `${SITE.url}/returns`,
+});
 
 export function organizationLd(): Json {
   return {
@@ -30,6 +38,7 @@ export function organizationLd(): Json {
     },
     areaServed: { '@type': 'Country', name: 'India' },
     sameAs: [SITE.b2bUrl],
+    hasMerchantReturnPolicy: returnPolicy(),
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer service',
@@ -76,6 +85,7 @@ function offer(url: string, v: Variant): Json {
     availability: v.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
     itemCondition: 'https://schema.org/NewCondition',
     seller: { '@id': orgId },
+    hasMerchantReturnPolicy: returnPolicy(),
   };
 }
 
