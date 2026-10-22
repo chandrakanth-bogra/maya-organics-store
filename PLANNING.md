@@ -66,11 +66,13 @@ OTP rules: Turnstile before sending (stops SMS-pumping fraud), 6 digits, 5-minut
 - [ ] Performance budget: LCP < 2 s on 4G, < 50 KB JS on content pages, Lighthouse ≥ 95, AVIF/WebP images
 
 ### Phase 3 — Accounts + cart + checkout (pay on WhatsApp)
-- [ ] Phone login: verify on WhatsApp (bot endpoint), WhatsApp code, SMS code; passkeys
-- [ ] Account: profile, addresses, GSTIN (for B2B invoices), orders, reorder
-- [ ] Cart island (synced to account), checkout: address, pincode, Turnstile
-- [ ] `POST /api/orders`: prices recalculated on the server, D1 batch write, status `pending_payment`
-- [ ] Bot alert to team with order + 📝 Quote / 🧾 Invoice buttons (Zoho), customer gets order summary on WhatsApp
+- [x] Phone login: verify on WhatsApp (bot confirms in shared DB); WhatsApp-template and SMS codes built, off until configured
+- [ ] Passkeys (fingerprint/face) for repeat logins
+- [x] Account: profile, addresses, GSTIN (for B2B invoices), orders
+- [ ] Reorder button
+- [x] Cart (browser, server-priced), checkout: saved/new address, name, GSTIN, note
+- [x] `POST /api/orders`: prices recalculated on the server, D1 batch write, status `pending_payment`
+- [x] Bot alert to team with order + 📝 Send quote / 🙋 Take over (Zoho draft at store prices), customer gets order summary on WhatsApp
 - [ ] `admin.mayaorganics.store` (Access): orders + status, products/sizes/prices, inventory, coupons, customers
 
 ### Phase 4 — Agent layer
