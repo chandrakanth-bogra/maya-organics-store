@@ -58,9 +58,11 @@ OTP rules: Turnstile before sending (stops SMS-pumping fraud), 6 digits, 5-minut
 - [ ] Bot: bind store D1, move `price` / `out` / `in` commands and quotes to the shared catalogue
 
 ### Phase 2 — Storefront + SEO
-- [ ] Pages: home, products, product detail (size picker), guides (6 existing + 3 from old site), about, contact, shipping, returns, privacy, terms
-- [ ] JSON-LD: Product + Offer (price, availability, GST incl.), BreadcrumbList, Organization/LocalBusiness, FAQPage, HowTo (guides)
-- [ ] `sitemap.xml` (+ images, lastmod), `robots.txt` with content signals, canonical tags, Open Graph images
+- [x] Pages: home, products, product detail (size picker), guides (6 existing + 3 from old site), about, contact, privacy, 404
+- [ ] Shipping, returns and terms pages (need delivery charges and return rules from the owner)
+- [x] JSON-LD: Product/ProductGroup + Offer (live price, availability), BreadcrumbList, OnlineStore, ItemList, Article (guides), FAQPage when FAQs exist
+- [ ] Offer shipping details + return policy in JSON-LD (after the policies are decided); product FAQs
+- [x] `sitemap.xml` (live, lastmod), `robots.txt` with content signals, canonical tags, Open Graph images
 - [ ] Performance budget: LCP < 2 s on 4G, < 50 KB JS on content pages, Lighthouse ≥ 95, AVIF/WebP images
 
 ### Phase 3 — Accounts + cart + checkout (pay on WhatsApp)
