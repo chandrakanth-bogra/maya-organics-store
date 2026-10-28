@@ -42,6 +42,8 @@ export const onRequest = defineMiddleware(async (ctx, next) => {
 
   const res = await next();
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v);
+  // The workers.dev test address must never be indexed.
+  if (ctx.url.hostname.endsWith('.workers.dev')) res.headers.set('X-Robots-Tag', 'noindex, nofollow');
   if (ctx.locals.customer || PROTECTED.test(pathname) || pathname.startsWith('/api/')) {
     res.headers.set('Cache-Control', 'private, no-store');
   }

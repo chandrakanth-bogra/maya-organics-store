@@ -8,8 +8,8 @@
     "directory": "./dist",
     "binding": "ASSETS"
   },
-  // Not public until launch (Phase 5): served only on mayaorganics.store.
-  "workers_dev": false,
+  // Test address until launch; kept out of search engines (X-Robots-Tag, see middleware + public/_headers).
+  "workers_dev": true,
   "preview_urls": false,
   "d1_databases": [
     {

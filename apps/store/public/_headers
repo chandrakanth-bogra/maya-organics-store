@@ -1,0 +1,3 @@
+# Static pages on the workers.dev test address: never index them.
+https://maya-organics-store.chandrakanth0698.workers.dev/*
+  X-Robots-Tag: noindex, nofollow
